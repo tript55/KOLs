@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: Fastify (tsx watch)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Frontend: Vite + Chrome",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "action": "debugWithChrome",
+        "pattern": "Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}/frontend/src"
+      }
+    }
+  ]
+}

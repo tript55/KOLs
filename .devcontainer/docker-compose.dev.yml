@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crypto-kol-dev
+    volumes:
+      # Mount the entire workspace for hot reload
+      - ..:/workspace:cached
+    #   # Named volume for node_modules to avoid host/container conflicts
+    #   - backend-node-modules:/workspace/node_modules
+    #   - frontend-node-modules:/workspace/frontend/node_modules
+    #   # Named volume for SQLite database persistence
+    #   - sqlite-data:/workspace/data
+    #   # Share git credentials
+    #   - ${HOME}/.gitconfig:/home/node/.gitconfig:ro
+    #   - ${HOME}/.ssh:/home/node/.ssh:ro
+    
+    ports:
+      - "3001:3000"  # Backend API
+      - "5173:5173"  # Frontend Vite dev server
+    
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_PATH: ./data/koldb.sqlite
+      # Load environment variables from .env file
+      # Copy .env.example to .env and fill in your values
+    
+    env_file:
+      - ../.env
+    
+    # Keep container running
+    command: sleep infinity
+    
+    # Resource limits (optional, adjust as needed)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    
+    networks:
+      - dev-network
+
+volumes:
+  backend-node-modules:
+  frontend-node-modules:
+  sqlite-data:
+
+networks:
+  dev-network:
+    driver: bridge

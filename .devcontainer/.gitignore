@@ -1,0 +1,15 @@
+# DevContainer specific ignores
+.env
+*.log
+.DS_Store
+Thumbs.db
+
+# VS Code workspace state
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

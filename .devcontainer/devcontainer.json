@@ -1,0 +1,72 @@
+{
+  "name": "Crypto KOL Development",
+  "dockerComposeFile": "docker-compose.dev.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "DATABASE_PATH": "./data/koldb.sqlite"
+  },
+
+  "forwardPorts": [3001, 5173],
+  "portsAttributes": {
+    "3001": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Frontend Dev Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "dsznajder.es7-react-js-snippets",
+        "ms-vscode.vscode-typescript-next"
+      ],
+      "settings": {
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        }
+      }
+    }
+  },
+
+  "postCreateCommand": "npm install && cd frontend && npm install",
+  "postStartCommand": "npm run db:seed",
+
+  "remoteUser": "node",
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+  }
+}

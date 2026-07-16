@@ -1,9 +1,12 @@
 import cron from "node-cron";
 import { CronExpressionParser } from "cron-parser";
 import { getEnv } from "../config/env.js";
-import { listScheduledPosts, getTemplate, updatePostStatus } from "../models/repository.js";
-import { generateContent } from "./content-generator.js";
-import { publishContent } from "./publisher.js";
+import {
+  getDueWorkflowPosts,
+  listScheduledPosts,
+  updateWorkflowState,
+} from "../models/repository.js";
+import { runFacebookWorkflow } from "./facebook-workflow.js";
 import type { SchedulerStatus } from "../types/index.js";
 
 let cronJob: cron.ScheduledTask | null = null;
@@ -12,7 +15,9 @@ export function startScheduler(): void {
   const env = getEnv();
 
   cronJob = cron.schedule(env.CONTENT_SCHEDULE, async () => {
-    console.log(`[Scheduler] Running content generation cycle at ${new Date().toISOString()}`);
+    console.log(
+      `[Scheduler] Running content generation cycle at ${new Date().toISOString()}`,
+    );
     await processScheduledPosts();
   });
 
@@ -50,34 +55,32 @@ export function getSchedulerStatus(): SchedulerStatus {
 
 async function processScheduledPosts(): Promise<void> {
   const now = new Date().toISOString();
-  const duePosts = listScheduledPosts({ status: "scheduled" })
-    .filter(p => p.scheduledAt !== null && p.scheduledAt <= now);
+  const duePosts = getDueWorkflowPosts(now);
 
   for (const post of duePosts) {
     try {
-      // mark as generating
-      updatePostStatus(post.id, "generating");
-
-      let content: string;
-
-      if (post.templateId) {
-        const result = await generateContent(post.templateId);
-        content = result.content;
-      } else if (post.content) {
-        content = post.content;
-      } else {
-        throw new Error(`Post ${post.id} has no template or content`);
+      if (post.platform === "facebook") {
+        const result = await runFacebookWorkflow(post.id);
+        console.log(
+          `[Scheduler] Advanced Facebook workflow ${result.id} to ${result.workflowStage}`,
+        );
+        continue;
       }
 
-      // publish to platform
-      await publishContent(post.platform, content);
+      if (post.status !== "scheduled") {
+        continue;
+      }
 
-      // mark as posted
-      updatePostStatus(post.id, "posted", content);
-      console.log(`[Scheduler] Posted ${post.id} to ${post.platform}`);
+      updateWorkflowState(post.id, {
+        status: "failed",
+        lastError: `Platform ${post.platform} is not supported by the workflow scheduler`,
+      });
     } catch (err) {
       console.error(`[Scheduler] Failed to process post ${post.id}:`, err);
-      updatePostStatus(post.id, "failed");
+      updateWorkflowState(post.id, {
+        status: "failed",
+        lastError: (err as Error).message,
+      });
     }
   }
 }
@@ -86,24 +89,19 @@ async function processScheduledPosts(): Promise<void> {
  * Process a single post immediately (bypass scheduler).
  */
 export async function processPostNow(postId: number): Promise<void> {
-  const posts = listScheduledPosts().filter(p => p.id === postId);
+  const posts = listScheduledPosts().filter((p) => p.id === postId);
   const post = posts[0];
   if (!post) throw new Error(`Post ${postId} not found`);
 
-  if (post.status === "posted") throw new Error(`Post ${postId} already posted`);
-
-  updatePostStatus(post.id, "generating");
-
-  let content: string;
-  if (post.templateId) {
-    const result = await generateContent(post.templateId);
-    content = result.content;
-  } else if (post.content) {
-    content = post.content;
-  } else {
-    throw new Error(`Post ${post.id} has no template or content`);
+  if (post.platform === "facebook") {
+    const result = await runFacebookWorkflow(post.id);
+    if (result.status === "failed") {
+      throw new Error(result.lastError ?? `Post ${postId} failed`);
+    }
+    return;
   }
 
-  await publishContent(post.platform, content);
-  updatePostStatus(post.id, "posted", content);
+  throw new Error(
+    `Platform ${post.platform} is not supported by processPostNow`,
+  );
 }

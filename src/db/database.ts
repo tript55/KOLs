@@ -87,4 +87,42 @@ export function migrate(): void {
     CREATE INDEX IF NOT EXISTS idx_scheduled_posts_scheduled_at ON scheduled_posts(scheduled_at);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_post_id ON analytics_events(post_id);
   `);
+
+  ensureColumn(
+    database,
+    "scheduled_posts",
+    "workflow_stage",
+    "TEXT NOT NULL DEFAULT 'research'",
+  );
+  ensureColumn(
+    database,
+    "scheduled_posts",
+    "workflow_attempts",
+    "INTEGER NOT NULL DEFAULT 0",
+  );
+  ensureColumn(database, "scheduled_posts", "external_post_id", "TEXT");
+  ensureColumn(database, "scheduled_posts", "last_error", "TEXT");
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_scheduled_posts_platform_status_stage_scheduled_at
+    ON scheduled_posts(platform, status, workflow_stage, scheduled_at);
+  `);
+}
+
+function ensureColumn(
+  database: Database.Database,
+  tableName: string,
+  columnName: string,
+  definition: string,
+): void {
+  const rows = database
+    .prepare(`PRAGMA table_info(${tableName})`)
+    .all() as Array<{ name: string }>;
+  const hasColumn = rows.some((row) => row.name === columnName);
+
+  if (!hasColumn) {
+    database.exec(
+      `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`,
+    );
+  }
 }

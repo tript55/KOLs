@@ -4,13 +4,20 @@ import {
   deleteScheduledPost,
   getScheduledPost,
   listScheduledPosts,
+  getWorkflowQueueSummary,
   updateScheduledPost,
 } from "../../models/repository.js";
-import { processPostNow } from "../../services/scheduler.js";
+import {
+  getSchedulerStatus,
+  processPostNow,
+} from "../../services/scheduler.js";
+import { runFacebookWorkflow } from "../../services/facebook-workflow.js";
 import type {
   ApiResponse,
   PaginatedResponse,
   Platform,
+  WorkflowStatus,
+  WorkflowStage,
 } from "../../types/index.js";
 
 export function registerPostRoutes(app: FastifyInstance): void {
@@ -45,6 +52,10 @@ export function registerPostRoutes(app: FastifyInstance): void {
       status: (body.status as "draft") ?? "scheduled",
       content: (body.content as string | null) ?? null,
       scheduledAt: (body.scheduledAt as string) ?? null,
+      workflowStage: (body.workflowStage as WorkflowStage) ?? "research",
+      workflowAttempts: (body.workflowAttempts as number) ?? 0,
+      externalPostId: (body.externalPostId as string | null) ?? null,
+      lastError: (body.lastError as string | null) ?? null,
       metadata: (body.metadata as Record<string, unknown> | null) ?? null,
     });
     reply.send({ success: true, data: post });
@@ -89,6 +100,22 @@ export function registerPostRoutes(app: FastifyInstance): void {
         body.scheduledAt !== undefined
           ? (body.scheduledAt as string | null)
           : existing.scheduledAt,
+      workflowStage:
+        body.workflowStage !== undefined
+          ? (body.workflowStage as WorkflowStage)
+          : existing.workflowStage,
+      workflowAttempts:
+        body.workflowAttempts !== undefined
+          ? (body.workflowAttempts as number)
+          : existing.workflowAttempts,
+      externalPostId:
+        body.externalPostId !== undefined
+          ? (body.externalPostId as string | null)
+          : existing.externalPostId,
+      lastError:
+        body.lastError !== undefined
+          ? (body.lastError as string | null)
+          : existing.lastError,
       metadata:
         body.metadata !== undefined
           ? (body.metadata as Record<string, unknown> | null)
@@ -117,6 +144,67 @@ export function registerPostRoutes(app: FastifyInstance): void {
       } catch (err) {
         return { success: false, error: (err as Error).message };
       }
+    },
+  );
+
+  app.post(
+    "/api/posts/workflows/facebook",
+    async (req, reply): Promise<void> => {
+      const body = req.body as Record<string, unknown>;
+      const metadata = {
+        workflowVersion: 1,
+        strategyKey:
+          (body.strategyKey as string | undefined) ?? "facebook-plan",
+        audienceSegment:
+          (body.audienceSegment as string | undefined) ?? "vietnamese-investor",
+        targetSlotLabel: (body.targetSlotLabel as string | undefined) ?? null,
+        ...(body.metadata as Record<string, unknown> | undefined),
+      };
+
+      const post = createScheduledPost({
+        templateId: (body.templateId as number | null) ?? null,
+        personaId: body.personaId as number,
+        platform: "facebook",
+        status: "draft",
+        content: (body.content as string | null) ?? null,
+        scheduledAt: (body.scheduledAt as string | null) ?? null,
+        workflowStage: "research",
+        workflowAttempts: 0,
+        externalPostId: null,
+        lastError: null,
+        metadata,
+      });
+
+      const autoRun = body.autoRunToSchedule !== false;
+      const data = autoRun ? await runFacebookWorkflow(post.id) : post;
+      reply.send({ success: true, data });
+    },
+  );
+
+  app.post(
+    "/api/posts/:id/workflow/run",
+    async (req): Promise<ApiResponse<unknown>> => {
+      const { id } = req.params as { id: string };
+      try {
+        const post = await runFacebookWorkflow(Number(id));
+        return { success: true, data: post };
+      } catch (err) {
+        return { success: false, error: (err as Error).message };
+      }
+    },
+  );
+
+  app.get(
+    "/api/posts/workflows/facebook/status",
+    async (): Promise<ApiResponse<WorkflowStatus>> => {
+      const now = new Date().toISOString();
+      return {
+        success: true,
+        data: {
+          scheduler: getSchedulerStatus(),
+          queue: getWorkflowQueueSummary(now),
+        },
+      };
     },
   );
 }

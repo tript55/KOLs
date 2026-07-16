@@ -1,10 +1,10 @@
 {
   "nodes": [
     {
-      "id": "ai_generate_success_png",
-      "label": "AI Generate / Schedule New Post Modal Screenshot",
+      "id": "frontend_src_assets_vite_svg",
+      "label": "Vite Logo SVG Asset",
       "file_type": "image",
-      "source_file": "/home/tript/soc/crypto-kol/ai-generate-success.png",
+      "source_file": "/workspace/frontend/src/assets/vite.svg",
       "source_location": null,
       "source_url": null,
       "captured_at": null,
@@ -12,33 +12,22 @@
       "contributor": null
     },
     {
-      "id": "post_deleted_successfully_png",
-      "label": "Posts Page Error State Screenshot",
+      "id": "vite_logo_title",
+      "label": "Vite",
       "file_type": "image",
-      "source_file": "/home/tript/soc/crypto-kol/post-deleted-successfully.png",
-      "source_location": null,
+      "source_file": "/workspace/frontend/src/assets/vite.svg",
+      "source_location": "title#vite-logo-title",
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null
     },
     {
-      "id": "post_updated_successfully_png",
-      "label": "Posts Page Clean State Screenshot",
+      "id": "vite_logo_dark_mode_style",
+      "label": "prefers-color-scheme dark style rule",
       "file_type": "image",
-      "source_file": "/home/tript/soc/crypto-kol/post-updated-successfully.png",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null
-    },
-    {
-      "id": "frontend_src_assets_hero_png",
-      "label": "Hero Brand Graphic - Isometric Squares",
-      "file_type": "image",
-      "source_file": "/home/tript/soc/crypto-kol/frontend/src/assets/hero.png",
-      "source_location": null,
+      "source_file": "/workspace/frontend/src/assets/vite.svg",
+      "source_location": "style",
       "source_url": null,
       "captured_at": null,
       "author": null,
@@ -47,54 +36,24 @@
   ],
   "edges": [
     {
-      "source": "post_deleted_successfully_png",
-      "target": "post_updated_successfully_png",
-      "relation": "conceptually_related_to",
+      "source": "frontend_src_assets_vite_svg",
+      "target": "vite_logo_title",
+      "relation": "references",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
-      "source_file": "/home/tript/soc/crypto-kol/post-deleted-successfully.png",
-      "source_location": null,
+      "source_file": "/workspace/frontend/src/assets/vite.svg",
+      "source_location": "aria-labelledby=vite-logo-title",
       "weight": 1.0
     },
     {
-      "source": "ai_generate_success_png",
-      "target": "post_updated_successfully_png",
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "/home/tript/soc/crypto-kol/ai-generate-success.png",
-      "source_location": null,
-      "weight": 0.8
-    },
-    {
-      "source": "ai_generate_success_png",
-      "target": "post_deleted_successfully_png",
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.75,
-      "source_file": "/home/tript/soc/crypto-kol/ai-generate-success.png",
-      "source_location": null,
-      "weight": 0.7
-    },
-    {
-      "source": "frontend_src_assets_hero_png",
-      "target": "ai_generate_success_png",
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.65,
-      "source_file": "/home/tript/soc/crypto-kol/frontend/src/assets/hero.png",
-      "source_location": null,
-      "weight": 0.5
-    },
-    {
-      "source": "frontend_src_assets_hero_png",
-      "target": "post_updated_successfully_png",
-      "relation": "conceptually_related_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.65,
-      "source_file": "/home/tript/soc/crypto-kol/frontend/src/assets/hero.png",
-      "source_location": null,
-      "weight": 0.5
+      "source": "frontend_src_assets_vite_svg",
+      "target": "vite_logo_dark_mode_style",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/workspace/frontend/src/assets/vite.svg",
+      "source_location": "@media (prefers-color-scheme:dark)",
+      "weight": 1.0
     }
   ],
   "hyperedges": [],

@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git-lfs \
     openssh-client \
     python3 \
+    python3-venv \
     make \
     g++ \
     vim \
@@ -40,11 +41,20 @@ RUN npm install -g \
     @typescript-eslint/parser \
     @typescript-eslint/eslint-plugin
 
+# Install uv + Graphify CLI so `graphify` is available in the container.
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
+
 # Switch to node user
 USER node
 
+RUN uv tool install --python 3.11 graphifyy --system-certs
+ENV PATH="/home/node/.local/bin:${PATH}"
+
 # Set working directory
 WORKDIR /workspace
+
+RUN graphify install
 
 # Default command (will be overridden by docker-compose)
 CMD ["sleep", "infinity"]

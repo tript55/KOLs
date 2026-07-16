@@ -6,3 +6,4 @@ data/
 .playwright-mcp
 .omo
 certs/
+graphify-out

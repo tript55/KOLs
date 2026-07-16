@@ -32,6 +32,7 @@ docker exec -it crypto-kol-dev bash
 ## Environment Setup
 
 1. Copy the environment template:
+
    ```bash
    cp ../.env.example ../.env
    ```
@@ -93,10 +94,10 @@ sqlite3 data/koldb.sqlite
 
 ## Port Mapping
 
-| Service | Container Port | Host Port | Description |
-|---------|---------------|-----------|-------------|
-| Backend API | 3000 | 3000 | Fastify API server |
-| Frontend | 5173 | 5173 | Vite dev server |
+| Service     | Container Port | Host Port | Description        |
+| ----------- | -------------- | --------- | ------------------ |
+| Backend API | 3000           | 3000      | Fastify API server |
+| Frontend    | 5173           | 5173      | Vite dev server    |
 
 ## Volumes
 
@@ -168,6 +169,7 @@ The devcontainer includes:
 - SSH client
 - SQLite3 CLI
 - Python 3 (for native module compilation)
+- Graphify CLI (`graphify`, installed via `uv tool install graphifyy`)
 - Vim, less, jq, procps
 
 ## Architecture Notes
@@ -181,5 +183,6 @@ The devcontainer includes:
 ## Support
 
 For issues or questions, refer to:
+
 - `AGENTS.md` - Project architecture and conventions
 - `docs/architecture.md` - Detailed system documentation

@@ -1,5 +1,33 @@
 # AGENTS.md — crypto-kol
 
+## Codebase Navigation: Graphify Knowledge Graph
+
+This project has a Graphify knowledge graph at `graphify-out/graph.json`,
+with a human-readable summary at `graphify-out/GRAPH_REPORT.md`.
+
+**Before searching, grepping, or reading files to understand the codebase,
+check the graph first:**
+
+1. For architecture / "how does X work" / "what calls Y" questions:
+   run `graphify query "<question>"` and use the returned nodes/edges
+   as your primary source. Do not fall back to `grep`/`find`/reading
+   files wholesale unless the query returns nothing useful.
+
+2. For broad orientation (module boundaries, entry points, god nodes):
+   read `graphify-out/GRAPH_REPORT.md` instead of walking the tree.
+
+3. Only read raw source files once the graph has told you _which_
+   files are relevant and _why_ (via EXTRACTED/INFERRED edges) — then
+   read just those files, not the whole directory.
+
+4. If `graphify-out/graph.json` is missing or stale (post branch switch,
+   large refactor), run `/graphify .` to rebuild before falling back
+   to raw search.
+
+**Priority order:** graphify query > GRAPH_REPORT.md > targeted file
+read > grep/find. Raw recursive search (`grep -r`, `find .`, `ls -R`)
+should be a last resort, not a first move.
+
 ## Project Layout
 
 - **Backend**: `src/` — Fastify 5 API server, TypeScript ESM, Node 22+
@@ -11,22 +39,22 @@
 
 ### Backend (root)
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Run with `tsx watch` (hot reload, no build) |
-| `npm run build` | `tsc` → `dist/` |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run lint` | `eslint src/` |
+| Command              | Purpose                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`        | Run with `tsx watch` (hot reload, no build)                                                                                             |
+| `npm run build`      | `tsc` → `dist/`                                                                                                                         |
+| `npm run typecheck`  | `tsc --noEmit`                                                                                                                          |
+| `npm run lint`       | `eslint src/`                                                                                                                           |
 | `npm run db:migrate` | **Broken** — references nonexistent `src/db/migrate.ts`. Migrations run automatically on server boot via `migrate()` in `src/index.ts`. |
-| `npm run db:seed` | Seed persona + templates (idempotent, skips if data exists; also runs migrations internally) |
+| `npm run db:seed`    | Seed persona + templates (idempotent, skips if data exists; also runs migrations internally)                                            |
 
 ### Frontend (`frontend/`)
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Vite dev server (proxies `/api` → `localhost:3000`) |
-| `npm run build` | `tsc -b && vite build` |
-| `npm run lint` | `oxlint` (NOT eslint — different linter) |
+| Command         | Purpose                                             |
+| --------------- | --------------------------------------------------- |
+| `npm run dev`   | Vite dev server (proxies `/api` → `localhost:3000`) |
+| `npm run build` | `tsc -b && vite build`                              |
+| `npm run lint`  | `oxlint` (NOT eslint — different linter)            |
 
 **No test framework is configured.** There are no test files or test scripts in either package.
 
@@ -52,31 +80,3 @@
 - Persona "Crypto Minh" is seeded by default with 3 Facebook templates
 - Template `user_prompt_template` uses `{{variable}}` placeholders, replaced at generation time
 - Post statuses: `draft → scheduled → generating → posted | failed`
-
-## Codebase Navigation: Graphify Knowledge Graph
-
-This project has a Graphify knowledge graph at `graphify-out/graph.json`,
-with a human-readable summary at `graphify-out/GRAPH_REPORT.md`.
-
-**Before searching, grepping, or reading files to understand the codebase,
-check the graph first:**
-
-1. For architecture / "how does X work" / "what calls Y" questions:
-   run `graphify query "<question>"` and use the returned nodes/edges
-   as your primary source. Do not fall back to `grep`/`find`/reading
-   files wholesale unless the query returns nothing useful.
-
-2. For broad orientation (module boundaries, entry points, god nodes):
-   read `graphify-out/GRAPH_REPORT.md` instead of walking the tree.
-
-3. Only read raw source files once the graph has told you *which*
-   files are relevant and *why* (via EXTRACTED/INFERRED edges) — then
-   read just those files, not the whole directory.
-
-4. If `graphify-out/graph.json` is missing or stale (post branch switch,
-   large refactor), run `/graphify .` to rebuild before falling back
-   to raw search.
-
-**Priority order:** graphify query > GRAPH_REPORT.md > targeted file
-read > grep/find. Raw recursive search (`grep -r`, `find .`, `ls -R`)
-should be a last resort, not a first move.

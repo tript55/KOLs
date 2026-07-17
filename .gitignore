@@ -5,6 +5,5 @@ data/
 *.log
 .playwright-mcp
 .omo
-certs/
 graphify-out
 .agents

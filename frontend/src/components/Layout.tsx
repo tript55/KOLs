@@ -9,6 +9,7 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import ServerStatusWidget from './ServerStatusWidget';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: HomeIcon },
@@ -74,6 +75,8 @@ export default function Layout() {
               </NavLink>
             ))}
           </nav>
+
+          <ServerStatusWidget />
         </div>
       </aside>
 

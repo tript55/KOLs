@@ -39,8 +39,12 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 // Health
-export async function getHealth(): Promise<{ status: string }> {
-  return fetchJson("/health");
+export async function getHealth(options?: RequestInit): Promise<{ status: string }> {
+  const response = await fetch(`${BASE_URL}/health`, options);
+  if (!response.ok) {
+    throw new Error(`API Error ${response.status}`);
+  }
+  return response.json();
 }
 
 // Dashboard Stats

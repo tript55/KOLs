@@ -24,35 +24,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: frontend/package-lock.json
-          
+
       - name: Install dependencies
         working-directory: ./frontend
         run: npm install
-        
+
       - name: Build
         working-directory: ./frontend
         env:
           # Automatically injects the repository name as the base path (e.g., /crypto-kol/)
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           # If you have a hosted backend, you can set VITE_API_URL in GitHub Repository Secrets
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
         run: npm run build
-        
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload the frontend dist folder
-          path: './frontend/dist'
+          path: "./frontend/dist"
 
   # Deployment job
   deploy:

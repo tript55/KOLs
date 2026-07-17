@@ -96,6 +96,10 @@ export const ResearchSnapshotSchema = z.object({
   strategyTags: z.array(z.string()),
   recentLearningNotes: z.array(z.string()),
   generatedAt: z.string(),
+  /** Formatted crypto/macro/regulatory headlines for prompt injection */
+  newsContext: z.string().optional(),
+  /** Fear & Greed index summary for prompt injection */
+  sentimentContext: z.string().optional(),
 });
 export type ResearchSnapshot = z.infer<typeof ResearchSnapshotSchema>;
 

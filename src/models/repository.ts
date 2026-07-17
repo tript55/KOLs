@@ -14,257 +14,171 @@ import type {
 } from "../types/index.js";
 
 // === Persona Repository ===
-export function getPersona(id: number): KOLPersona | undefined {
-  const row = getDatabase()
-    .prepare("SELECT * FROM personas WHERE id = ?")
-    .get(id) as Record<string, unknown> | undefined;
-  if (!row) return undefined;
-  return deserializePersona(row);
+export async function getPersona(id: number): Promise<KOLPersona | undefined> {
+  const db = getDatabase();
+  const rows = await db`SELECT * FROM personas WHERE id = ${id}`;
+  if (rows.length === 0) return undefined;
+  return deserializePersona(rows[0]!);
 }
 
-export function getPersonaByName(name: string): KOLPersona | undefined {
-  const row = getDatabase()
-    .prepare("SELECT * FROM personas WHERE name = ?")
-    .get(name) as Record<string, unknown> | undefined;
-  if (!row) return undefined;
-  return deserializePersona(row);
+export async function getPersonaByName(name: string): Promise<KOLPersona | undefined> {
+  const db = getDatabase();
+  const rows = await db`SELECT * FROM personas WHERE name = ${name}`;
+  if (rows.length === 0) return undefined;
+  return deserializePersona(rows[0]!);
 }
 
-export function listPersonas(): KOLPersona[] {
-  const rows = getDatabase()
-    .prepare("SELECT * FROM personas ORDER BY created_at DESC")
-    .all() as Record<string, unknown>[];
+export async function listPersonas(): Promise<KOLPersona[]> {
+  const db = getDatabase();
+  const rows = await db`SELECT * FROM personas ORDER BY created_at DESC`;
   return rows.map(deserializePersona);
 }
 
-export function createPersona(
+export async function createPersona(
   data: Omit<KOLPersona, "id" | "createdAt" | "updatedAt">,
-): KOLPersona {
-  const stmt = getDatabase().prepare(`
+): Promise<KOLPersona> {
+  const db = getDatabase();
+  const rows = await db`
     INSERT INTO personas (name, display_name, bio, expertise, tone_of_voice, target_platforms, language, avatar_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const result = stmt.run(
-    data.name,
-    data.displayName,
-    data.bio,
-    JSON.stringify(data.expertise),
-    data.toneOfVoice,
-    JSON.stringify(data.targetPlatforms),
-    data.language,
-    data.avatarUrl ?? null,
-  );
-  return getPersona(Number(result.lastInsertRowid))!;
+    VALUES (${data.name}, ${data.displayName}, ${data.bio}, ${JSON.stringify(data.expertise)}, ${data.toneOfVoice}, ${JSON.stringify(data.targetPlatforms)}, ${data.language}, ${data.avatarUrl ?? null})
+    RETURNING id
+  `;
+  return (await getPersona(rows[0]!.id))!;
 }
 
 // === Content Template Repository ===
-export function getTemplate(id: number): ContentTemplate | undefined {
-  const row = getDatabase()
-    .prepare("SELECT * FROM content_templates WHERE id = ?")
-    .get(id) as Record<string, unknown> | undefined;
-  if (!row) return undefined;
-  return deserializeTemplate(row);
+export async function getTemplate(id: number): Promise<ContentTemplate | undefined> {
+  const db = getDatabase();
+  const rows = await db`SELECT * FROM content_templates WHERE id = ${id}`;
+  if (rows.length === 0) return undefined;
+  return deserializeTemplate(rows[0]!);
 }
 
-export function listTemplates(personaId?: number): ContentTemplate[] {
+export async function listTemplates(personaId?: number): Promise<ContentTemplate[]> {
+  const db = getDatabase();
   if (personaId) {
-    const rows = getDatabase()
-      .prepare(
-        "SELECT * FROM content_templates WHERE persona_id = ? ORDER BY created_at DESC",
-      )
-      .all(personaId) as Record<string, unknown>[];
+    const rows = await db`SELECT * FROM content_templates WHERE persona_id = ${personaId} ORDER BY created_at DESC`;
     return rows.map(deserializeTemplate);
   }
-  const rows = getDatabase()
-    .prepare("SELECT * FROM content_templates ORDER BY created_at DESC")
-    .all() as Record<string, unknown>[];
+  const rows = await db`SELECT * FROM content_templates ORDER BY created_at DESC`;
   return rows.map(deserializeTemplate);
 }
 
-export function createTemplate(
+export async function createTemplate(
   data: Omit<ContentTemplate, "id" | "createdAt" | "updatedAt">,
-): ContentTemplate {
-  const stmt = getDatabase().prepare(`
+): Promise<ContentTemplate> {
+  const db = getDatabase();
+  const rows = await db`
     INSERT INTO content_templates (persona_id, name, type, platform, system_prompt, user_prompt_template, max_tokens, temperature, hashtags)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const result = stmt.run(
-    data.personaId,
-    data.name,
-    data.type,
-    data.platform,
-    data.systemPrompt,
-    data.userPromptTemplate,
-    data.maxTokens,
-    data.temperature,
-    JSON.stringify(data.hashtags),
-  );
-  return getTemplate(Number(result.lastInsertRowid))!;
+    VALUES (${data.personaId}, ${data.name}, ${data.type}, ${data.platform}, ${data.systemPrompt}, ${data.userPromptTemplate}, ${data.maxTokens}, ${data.temperature}, ${JSON.stringify(data.hashtags)})
+    RETURNING id
+  `;
+  return (await getTemplate(rows[0]!.id))!;
 }
 
 // === Scheduled Post Repository ===
-export function getScheduledPost(id: number): ScheduledPost | undefined {
-  const row = getDatabase()
-    .prepare("SELECT * FROM scheduled_posts WHERE id = ?")
-    .get(id) as Record<string, unknown> | undefined;
-  if (!row) return undefined;
-  return deserializePost(row);
+export async function getScheduledPost(id: number): Promise<ScheduledPost | undefined> {
+  const db = getDatabase();
+  const rows = await db`SELECT * FROM scheduled_posts WHERE id = ${id}`;
+  if (rows.length === 0) return undefined;
+  return deserializePost(rows[0]!);
 }
 
-export function listScheduledPosts(filter?: {
+export async function listScheduledPosts(filter?: {
   status?: string;
   personaId?: number;
-}): ScheduledPost[] {
-  let sql = "SELECT * FROM scheduled_posts WHERE 1=1";
-  const params: unknown[] = [];
-  if (filter?.status) {
-    sql += " AND status = ?";
-    params.push(filter.status);
+}): Promise<ScheduledPost[]> {
+  const db = getDatabase();
+  
+  if (filter?.status && filter?.personaId) {
+    const rows = await db`SELECT * FROM scheduled_posts WHERE status = ${filter.status} AND persona_id = ${filter.personaId} ORDER BY scheduled_at ASC`;
+    return rows.map(deserializePost);
+  } else if (filter?.status) {
+    const rows = await db`SELECT * FROM scheduled_posts WHERE status = ${filter.status} ORDER BY scheduled_at ASC`;
+    return rows.map(deserializePost);
+  } else if (filter?.personaId) {
+    const rows = await db`SELECT * FROM scheduled_posts WHERE persona_id = ${filter.personaId} ORDER BY scheduled_at ASC`;
+    return rows.map(deserializePost);
+  } else {
+    const rows = await db`SELECT * FROM scheduled_posts ORDER BY scheduled_at ASC`;
+    return rows.map(deserializePost);
   }
-  if (filter?.personaId) {
-    sql += " AND persona_id = ?";
-    params.push(filter.personaId);
-  }
-  sql += " ORDER BY scheduled_at ASC";
-  const rows = getDatabase()
-    .prepare(sql)
-    .all(...params) as Record<string, unknown>[];
-  return rows.map(deserializePost);
 }
 
-export function createScheduledPost(
+export async function createScheduledPost(
   data: Omit<ScheduledPost, "id" | "postedAt" | "createdAt" | "updatedAt">,
-): ScheduledPost {
-  const stmt = getDatabase().prepare(`
+): Promise<ScheduledPost> {
+  const db = getDatabase();
+  const rows = await db`
     INSERT INTO scheduled_posts (template_id, persona_id, platform, status, content, scheduled_at, workflow_stage, workflow_attempts, external_post_id, last_error, metadata)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const result = stmt.run(
-    data.templateId ?? null,
-    data.personaId,
-    data.platform,
-    data.status,
-    data.content ?? null,
-    data.scheduledAt ?? null,
-    data.workflowStage,
-    data.workflowAttempts,
-    data.externalPostId ?? null,
-    data.lastError ?? null,
-    data.metadata ? JSON.stringify(data.metadata) : null,
-  );
-  return getScheduledPost(Number(result.lastInsertRowid))!;
+    VALUES (${data.templateId ?? null}, ${data.personaId}, ${data.platform}, ${data.status}, ${data.content ?? null}, ${data.scheduledAt ?? null}, ${data.workflowStage}, ${data.workflowAttempts}, ${data.externalPostId ?? null}, ${data.lastError ?? null}, ${data.metadata ? JSON.stringify(data.metadata) : null})
+    RETURNING id
+  `;
+  return (await getScheduledPost(rows[0]!.id))!;
 }
 
-export function updatePostStatus(
+export async function updatePostStatus(
   id: number,
   status: string,
   content?: string,
-): void {
+): Promise<void> {
+  const db = getDatabase();
   if (content) {
-    getDatabase()
-      .prepare(
-        "UPDATE scheduled_posts SET status = ?, content = ?, posted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
-      )
-      .run(status, content, id);
+    await db`UPDATE scheduled_posts SET status = ${status}, content = ${content}, posted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ${id}`;
   } else {
-    getDatabase()
-      .prepare(
-        "UPDATE scheduled_posts SET status = ?, updated_at = datetime('now') WHERE id = ?",
-      )
-      .run(status, id);
+    await db`UPDATE scheduled_posts SET status = ${status}, updated_at = CURRENT_TIMESTAMP WHERE id = ${id}`;
   }
 }
 
-export function updateScheduledPost(
+export async function updateScheduledPost(
   id: number,
   data: Partial<Omit<ScheduledPost, "id" | "createdAt" | "updatedAt">>,
-): ScheduledPost | undefined {
-  const updates: string[] = [];
-  const params: unknown[] = [];
+): Promise<ScheduledPost | undefined> {
+  const db = getDatabase();
+  const updates: Record<string, any> = {};
 
-  if (data.templateId !== undefined) {
-    updates.push("template_id = ?");
-    params.push(data.templateId);
-  }
-  if (data.personaId !== undefined) {
-    updates.push("persona_id = ?");
-    params.push(data.personaId);
-  }
-  if (data.platform !== undefined) {
-    updates.push("platform = ?");
-    params.push(data.platform);
-  }
-  if (data.status !== undefined) {
-    updates.push("status = ?");
-    params.push(data.status);
-  }
-  if (data.content !== undefined) {
-    updates.push("content = ?");
-    params.push(data.content);
-  }
-  if (data.scheduledAt !== undefined) {
-    updates.push("scheduled_at = ?");
-    params.push(data.scheduledAt);
-  }
-  if (data.workflowStage !== undefined) {
-    updates.push("workflow_stage = ?");
-    params.push(data.workflowStage);
-  }
-  if (data.workflowAttempts !== undefined) {
-    updates.push("workflow_attempts = ?");
-    params.push(data.workflowAttempts);
-  }
-  if (data.externalPostId !== undefined) {
-    updates.push("external_post_id = ?");
-    params.push(data.externalPostId);
-  }
-  if (data.lastError !== undefined) {
-    updates.push("last_error = ?");
-    params.push(data.lastError);
-  }
-  if (data.metadata !== undefined) {
-    updates.push("metadata = ?");
-    params.push(data.metadata ? JSON.stringify(data.metadata) : null);
-  }
+  if (data.templateId !== undefined) updates.template_id = data.templateId;
+  if (data.personaId !== undefined) updates.persona_id = data.personaId;
+  if (data.platform !== undefined) updates.platform = data.platform;
+  if (data.status !== undefined) updates.status = data.status;
+  if (data.content !== undefined) updates.content = data.content;
+  if (data.scheduledAt !== undefined) updates.scheduled_at = data.scheduledAt;
+  if (data.workflowStage !== undefined) updates.workflow_stage = data.workflowStage;
+  if (data.workflowAttempts !== undefined) updates.workflow_attempts = data.workflowAttempts;
+  if (data.externalPostId !== undefined) updates.external_post_id = data.externalPostId;
+  if (data.lastError !== undefined) updates.last_error = data.lastError;
+  if (data.metadata !== undefined) updates.metadata = data.metadata ? JSON.stringify(data.metadata) : null;
 
-  if (updates.length === 0) return getScheduledPost(id);
+  if (Object.keys(updates).length === 0) return getScheduledPost(id);
 
-  updates.push("updated_at = datetime('now')");
-  params.push(id);
+  updates.updated_at = db`CURRENT_TIMESTAMP`;
 
-  getDatabase()
-    .prepare(`UPDATE scheduled_posts SET ${updates.join(", ")} WHERE id = ?`)
-    .run(...params);
+  await db`UPDATE scheduled_posts SET ${db(updates)} WHERE id = ${id}`;
   return getScheduledPost(id);
 }
 
-export function deleteScheduledPost(id: number): boolean {
-  const result = getDatabase()
-    .prepare("DELETE FROM scheduled_posts WHERE id = ?")
-    .run(id);
-  return result.changes > 0;
+export async function deleteScheduledPost(id: number): Promise<boolean> {
+  const db = getDatabase();
+  const result = await db`DELETE FROM scheduled_posts WHERE id = ${id}`;
+  return result.count > 0;
 }
 
-export function getDueWorkflowPosts(now: string): ScheduledPost[] {
-  const rows = getDatabase()
-    .prepare(
-      `
+export async function getDueWorkflowPosts(now: string): Promise<ScheduledPost[]> {
+  const db = getDatabase();
+  const rows = await db`
     SELECT *
     FROM scheduled_posts
     WHERE platform = 'facebook'
       AND (
-        (status IN ('scheduled', 'generating') AND scheduled_at IS NOT NULL AND scheduled_at <= ?)
+        (status IN ('scheduled', 'generating') AND scheduled_at IS NOT NULL AND scheduled_at <= ${now})
         OR (status = 'posted' AND workflow_stage IN ('feedback', 'learning'))
       )
     ORDER BY scheduled_at ASC, created_at ASC
-  `,
-    )
-    .all(now) as Record<string, unknown>[];
-
+  `;
   return rows.map(deserializePost);
 }
 
-export function updateWorkflowState(
+export async function updateWorkflowState(
   id: number,
   patch: {
     status?: ScheduledPost["status"];
@@ -277,133 +191,62 @@ export function updateWorkflowState(
     metadata?: ScheduledPost["metadata"];
     postedAt?: string | null;
   },
-): ScheduledPost | undefined {
-  const updates: string[] = [];
-  const params: unknown[] = [];
+): Promise<ScheduledPost | undefined> {
+  const db = getDatabase();
+  const updates: Record<string, any> = {};
 
-  if (patch.status !== undefined) {
-    updates.push("status = ?");
-    params.push(patch.status);
-  }
-  if (patch.content !== undefined) {
-    updates.push("content = ?");
-    params.push(patch.content);
-  }
-  if (patch.scheduledAt !== undefined) {
-    updates.push("scheduled_at = ?");
-    params.push(patch.scheduledAt);
-  }
-  if (patch.workflowStage !== undefined) {
-    updates.push("workflow_stage = ?");
-    params.push(patch.workflowStage);
-  }
-  if (patch.workflowAttempts !== undefined) {
-    updates.push("workflow_attempts = ?");
-    params.push(patch.workflowAttempts);
-  }
-  if (patch.externalPostId !== undefined) {
-    updates.push("external_post_id = ?");
-    params.push(patch.externalPostId);
-  }
-  if (patch.lastError !== undefined) {
-    updates.push("last_error = ?");
-    params.push(patch.lastError);
-  }
-  if (patch.metadata !== undefined) {
-    updates.push("metadata = ?");
-    params.push(patch.metadata ? JSON.stringify(patch.metadata) : null);
-  }
-  if (patch.postedAt !== undefined) {
-    updates.push("posted_at = ?");
-    params.push(patch.postedAt);
-  }
+  if (patch.status !== undefined) updates.status = patch.status;
+  if (patch.content !== undefined) updates.content = patch.content;
+  if (patch.scheduledAt !== undefined) updates.scheduled_at = patch.scheduledAt;
+  if (patch.workflowStage !== undefined) updates.workflow_stage = patch.workflowStage;
+  if (patch.workflowAttempts !== undefined) updates.workflow_attempts = patch.workflowAttempts;
+  if (patch.externalPostId !== undefined) updates.external_post_id = patch.externalPostId;
+  if (patch.lastError !== undefined) updates.last_error = patch.lastError;
+  if (patch.metadata !== undefined) updates.metadata = patch.metadata ? JSON.stringify(patch.metadata) : null;
+  if (patch.postedAt !== undefined) updates.posted_at = patch.postedAt;
 
-  if (updates.length === 0) return getScheduledPost(id);
+  if (Object.keys(updates).length === 0) return getScheduledPost(id);
 
-  updates.push("updated_at = datetime('now')");
-  params.push(id);
+  updates.updated_at = db`CURRENT_TIMESTAMP`;
 
-  getDatabase()
-    .prepare(`UPDATE scheduled_posts SET ${updates.join(", ")} WHERE id = ?`)
-    .run(...params);
+  await db`UPDATE scheduled_posts SET ${db(updates)} WHERE id = ${id}`;
   return getScheduledPost(id);
 }
 
-export function getWorkflowQueueSummary(now: string): WorkflowQueueSummary {
+export async function getWorkflowQueueSummary(now: string): Promise<WorkflowQueueSummary> {
   const db = getDatabase();
-  const baseQuery = `FROM scheduled_posts WHERE platform = 'facebook'`;
+  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+    db`SELECT COUNT(*)::int AS total FROM scheduled_posts WHERE platform = 'facebook'`,
+    db`SELECT COUNT(*)::int AS scheduled FROM scheduled_posts WHERE platform = 'facebook' AND status = 'scheduled'`,
+    db`SELECT COUNT(*)::int AS generating FROM scheduled_posts WHERE platform = 'facebook' AND status = 'generating'`,
+    db`SELECT COUNT(*)::int AS failed FROM scheduled_posts WHERE platform = 'facebook' AND status = 'failed'`,
+    db`SELECT COUNT(*)::int AS overdue FROM scheduled_posts WHERE platform = 'facebook' AND status IN ('scheduled', 'generating') AND scheduled_at IS NOT NULL AND scheduled_at <= ${now}`,
+    db`SELECT COUNT(*)::int AS "postedToday" FROM scheduled_posts WHERE platform = 'facebook' AND status = 'posted' AND DATE(posted_at) = CURRENT_DATE`
+  ]);
 
-  const total = (
-    db.prepare(`SELECT COUNT(*) AS c ${baseQuery}`).get() as { c: number }
-  ).c;
-  const scheduled = (
-    db
-      .prepare(`SELECT COUNT(*) AS c ${baseQuery} AND status = 'scheduled'`)
-      .get() as { c: number }
-  ).c;
-  const generating = (
-    db
-      .prepare(`SELECT COUNT(*) AS c ${baseQuery} AND status = 'generating'`)
-      .get() as { c: number }
-  ).c;
-  const failed = (
-    db
-      .prepare(`SELECT COUNT(*) AS c ${baseQuery} AND status = 'failed'`)
-      .get() as { c: number }
-  ).c;
-  const overdue = (
-    db
-      .prepare(
-        `SELECT COUNT(*) AS c ${baseQuery} AND status IN ('scheduled', 'generating') AND scheduled_at IS NOT NULL AND scheduled_at <= ?`,
-      )
-      .get(now) as { c: number }
-  ).c;
-  const postedToday = (
-    db
-      .prepare(
-        `SELECT COUNT(*) AS c ${baseQuery} AND status = 'posted' AND date(posted_at) = date('now')`,
-      )
-      .get() as { c: number }
-  ).c;
-
-  return { total, scheduled, generating, failed, overdue, postedToday };
+  return { total: r1[0]!.total, scheduled: r2[0]!.scheduled, generating: r3[0]!.generating, failed: r4[0]!.failed, overdue: r5[0]!.overdue, postedToday: r6[0]!.postedToday };
 }
 
 // === Analytics Repository ===
-export function recordAnalytics(
+export async function recordAnalytics(
   data: Omit<AnalyticsEvent, "id">,
-): AnalyticsEvent {
-  const stmt = getDatabase().prepare(`
+): Promise<AnalyticsEvent> {
+  const db = getDatabase();
+  const rows = await db`
     INSERT INTO analytics_events (post_id, platform, event_type, count, recorded_at)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-  const result = stmt.run(
-    data.postId,
-    data.platform,
-    data.eventType,
-    data.count,
-    data.recordedAt,
-  );
-  const row = getDatabase()
-    .prepare("SELECT * FROM analytics_events WHERE id = ?")
-    .get(Number(result.lastInsertRowid)) as Record<string, unknown>;
-  return deserializeAnalytics(row);
+    VALUES (${data.postId}, ${data.platform}, ${data.eventType}, ${data.count}, ${data.recordedAt})
+    RETURNING id
+  `;
+  const eventRows = await db`SELECT * FROM analytics_events WHERE id = ${rows[0]!.id}`;
+  return deserializeAnalytics(eventRows[0]!);
 }
 
 // === Dashboard Stats Repository ===
-export function getDashboardStats(): DashboardStats {
+export async function getDashboardStats(): Promise<DashboardStats> {
   const db = getDatabase();
 
-  const totalPostsRow = db
-    .prepare("SELECT COUNT(*) AS c FROM scheduled_posts")
-    .get() as { c: number };
-  const totalPosts = totalPostsRow.c;
-
-  const statusRows = db
-    .prepare(
-      "SELECT status, COUNT(*) AS c FROM scheduled_posts GROUP BY status",
-    )
-    .all() as Array<{ status: string; c: number }>;
+  const r7 = await db`SELECT COUNT(*)::int AS c FROM scheduled_posts`; const totalPosts = r7[0]!.c;
+  const statusRows = await db`SELECT status, COUNT(*)::int AS c FROM scheduled_posts GROUP BY status`;
   const postsByStatus: PostStatusBreakdown = {
     draft: 0,
     scheduled: 0,
@@ -417,18 +260,9 @@ export function getDashboardStats(): DashboardStats {
     }
   }
 
-  const postsTodayRow = db
-    .prepare(
-      "SELECT COUNT(*) AS c FROM scheduled_posts WHERE date(created_at) = date('now')",
-    )
-    .get() as { c: number };
-  const postsToday = postsTodayRow.c;
+  const r8 = await db`SELECT COUNT(*)::int AS c FROM scheduled_posts WHERE DATE(created_at) = CURRENT_DATE`; const postsToday = r8[0]!.c;
 
-  const engagementRows = db
-    .prepare(
-      "SELECT event_type, COALESCE(SUM(count), 0) AS s FROM analytics_events GROUP BY event_type",
-    )
-    .all() as Array<{ event_type: string; s: number }>;
+  const engagementRows = await db`SELECT event_type, COALESCE(SUM(count), 0)::int AS s FROM analytics_events GROUP BY event_type`;
   const engagementByType: EngagementByType = {
     impression: 0,
     like: 0,
@@ -445,12 +279,8 @@ export function getDashboardStats(): DashboardStats {
     totalEngagement += row.s;
   }
 
-  const personasRow = db
-    .prepare("SELECT COUNT(*) AS c FROM personas")
-    .get() as { c: number };
-  const templatesRow = db
-    .prepare("SELECT COUNT(*) AS c FROM content_templates")
-    .get() as { c: number };
+  const r9 = await db`SELECT COUNT(*)::int AS c FROM personas`; const totalPersonas = r9[0]!.c;
+  const r10 = await db`SELECT COUNT(*)::int AS c FROM content_templates`; const totalTemplates = r10[0]!.c;
 
   return {
     totalPosts,
@@ -458,33 +288,32 @@ export function getDashboardStats(): DashboardStats {
     postsToday,
     totalEngagement,
     engagementByType,
-    totalPersonas: personasRow.c,
-    totalTemplates: templatesRow.c,
+    totalPersonas,
+    totalTemplates,
   };
 }
 
 // === Analytics By Post Repository ===
-export function getAnalyticsByPost(postId?: number): PostAnalyticsGroup[] {
+export async function getAnalyticsByPost(postId?: number): Promise<PostAnalyticsGroup[]> {
   const db = getDatabase();
-  const where = postId !== undefined ? "WHERE ae.post_id = ?" : "";
-  const params: unknown[] = postId !== undefined ? [postId] : [];
-
-  const rows = db
-    .prepare(
-      `
-    SELECT ae.post_id, ae.platform, ae.event_type, COALESCE(SUM(ae.count), 0) AS total
-    FROM analytics_events ae
-    ${where}
-    GROUP BY ae.post_id, ae.platform, ae.event_type
-    ORDER BY ae.post_id DESC, ae.platform ASC
-  `,
-    )
-    .all(...params) as Array<{
-    post_id: number;
-    platform: string;
-    event_type: string;
-    total: number;
-  }>;
+  
+  let rows;
+  if (postId !== undefined) {
+    rows = await db`
+      SELECT ae.post_id, ae.platform, ae.event_type, COALESCE(SUM(ae.count), 0)::int AS total
+      FROM analytics_events ae
+      WHERE ae.post_id = ${postId}
+      GROUP BY ae.post_id, ae.platform, ae.event_type
+      ORDER BY ae.post_id DESC, ae.platform ASC
+    `;
+  } else {
+    rows = await db`
+      SELECT ae.post_id, ae.platform, ae.event_type, COALESCE(SUM(ae.count), 0)::int AS total
+      FROM analytics_events ae
+      GROUP BY ae.post_id, ae.platform, ae.event_type
+      ORDER BY ae.post_id DESC, ae.platform ASC
+    `;
+  }
 
   const grouped = new Map<string, PostAnalyticsGroup>();
   for (const row of rows) {
@@ -516,33 +345,22 @@ export function getAnalyticsByPost(postId?: number): PostAnalyticsGroup[] {
 }
 
 // === Recent Posts With Analytics ===
-export function getRecentPosts(limit?: number): RecentPostWithAnalytics[] {
+export async function getRecentPosts(limit?: number): Promise<RecentPostWithAnalytics[]> {
   const safeLimit = limit && limit > 0 ? limit : 10;
   const db = getDatabase();
 
-  const postRows = db
-    .prepare("SELECT * FROM scheduled_posts ORDER BY created_at DESC LIMIT ?")
-    .all(safeLimit) as Record<string, unknown>[];
-
+  const postRows = await db`SELECT * FROM scheduled_posts ORDER BY created_at DESC LIMIT ${safeLimit}`;
   const posts = postRows.map(deserializePost);
 
   if (posts.length === 0) return [];
 
-  const placeholders = posts.map(() => "?").join(",");
-  const analyticsRows = db
-    .prepare(
-      `
-    SELECT post_id, event_type, COALESCE(SUM(count), 0) AS total
+  const postIds = posts.map((p) => p.id);
+  const analyticsRows = await db`
+    SELECT post_id, event_type, COALESCE(SUM(count), 0)::int AS total
     FROM analytics_events
-    WHERE post_id IN (${placeholders})
+    WHERE post_id IN ${db(postIds)}
     GROUP BY post_id, event_type
-  `,
-    )
-    .all(...posts.map((p) => p.id)) as Array<{
-    post_id: number;
-    event_type: string;
-    total: number;
-  }>;
+  `;
 
   const analyticsByPost = new Map<
     number,
@@ -575,7 +393,6 @@ export function getRecentPosts(limit?: number): RecentPostWithAnalytics[] {
     entry.total += row.total;
   }
 
-  // Determine platform per post from the post's own column (not analytics_events to avoid duplication)
   return posts.map((post) => {
     const entry = analyticsByPost.get(post.id);
     return {
@@ -593,23 +410,23 @@ export function getRecentPosts(limit?: number): RecentPostWithAnalytics[] {
 }
 
 // === Deserializers (json fields from DB) ===
-function deserializePersona(row: Record<string, unknown>): KOLPersona {
+function deserializePersona(row: Record<string, any>): KOLPersona {
   return {
     id: row.id as number,
     name: row.name as string,
     displayName: row.display_name as string,
     bio: row.bio as string,
-    expertise: JSON.parse(row.expertise as string),
+    expertise: typeof row.expertise === 'string' ? JSON.parse(row.expertise) : row.expertise,
     toneOfVoice: row.tone_of_voice as KOLPersona["toneOfVoice"],
-    targetPlatforms: JSON.parse(row.target_platforms as string),
+    targetPlatforms: typeof row.target_platforms === 'string' ? JSON.parse(row.target_platforms) : row.target_platforms,
     language: row.language as "vi",
     avatarUrl: row.avatar_url as string | undefined,
-    createdAt: row.created_at as string,
-    updatedAt: row.updated_at as string,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
   };
 }
 
-function deserializeTemplate(row: Record<string, unknown>): ContentTemplate {
+function deserializeTemplate(row: Record<string, any>): ContentTemplate {
   return {
     id: row.id as number,
     personaId: row.persona_id as number,
@@ -620,13 +437,13 @@ function deserializeTemplate(row: Record<string, unknown>): ContentTemplate {
     userPromptTemplate: row.user_prompt_template as string,
     maxTokens: row.max_tokens as number,
     temperature: row.temperature as number,
-    hashtags: JSON.parse(row.hashtags as string),
-    createdAt: row.created_at as string,
-    updatedAt: row.updated_at as string,
+    hashtags: typeof row.hashtags === 'string' ? JSON.parse(row.hashtags) : row.hashtags,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
   };
 }
 
-function deserializePost(row: Record<string, unknown>): ScheduledPost {
+function deserializePost(row: Record<string, any>): ScheduledPost {
   return {
     id: row.id as number,
     templateId: row.template_id as number | null,
@@ -634,27 +451,25 @@ function deserializePost(row: Record<string, unknown>): ScheduledPost {
     platform: row.platform as ScheduledPost["platform"],
     status: row.status as ScheduledPost["status"],
     content: row.content as string | null,
-    scheduledAt: row.scheduled_at as string,
-    postedAt: row.posted_at as string | null,
-    workflowStage:
-      (row.workflow_stage as ScheduledPost["workflowStage"] | undefined) ??
-      "research",
+    scheduledAt: row.scheduled_at instanceof Date ? row.scheduled_at.toISOString() : row.scheduled_at ? String(row.scheduled_at) : null,
+    postedAt: row.posted_at instanceof Date ? row.posted_at.toISOString() : row.posted_at ? String(row.posted_at) : null,
+    workflowStage: (row.workflow_stage as ScheduledPost["workflowStage"] | undefined) ?? "research",
     workflowAttempts: (row.workflow_attempts as number | undefined) ?? 0,
     externalPostId: (row.external_post_id as string | null | undefined) ?? null,
     lastError: (row.last_error as string | null | undefined) ?? null,
-    metadata: row.metadata ? JSON.parse(row.metadata as string) : null,
-    createdAt: row.created_at as string,
-    updatedAt: row.updated_at as string,
+    metadata: row.metadata ? (typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata) : null,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
   };
 }
 
-function deserializeAnalytics(row: Record<string, unknown>): AnalyticsEvent {
+function deserializeAnalytics(row: Record<string, any>): AnalyticsEvent {
   return {
     id: row.id as number,
     postId: row.post_id as number,
     platform: row.platform as AnalyticsEvent["platform"],
     eventType: row.event_type as AnalyticsEvent["eventType"],
     count: row.count as number,
-    recordedAt: row.recorded_at as string,
+    recordedAt: row.recorded_at instanceof Date ? row.recorded_at.toISOString() : String(row.recorded_at),
   };
 }

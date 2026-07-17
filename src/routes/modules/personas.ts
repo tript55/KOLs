@@ -12,7 +12,7 @@ import type {
 
 export function registerPersonaRoutes(app: FastifyInstance): void {
   app.get("/api/personas", async (): Promise<PaginatedResponse<unknown>> => {
-    const personas = listPersonas();
+    const personas = await listPersonas();
     return {
       success: true,
       data: personas,
@@ -24,14 +24,14 @@ export function registerPersonaRoutes(app: FastifyInstance): void {
 
   app.get("/api/personas/:id", async (req): Promise<ApiResponse<unknown>> => {
     const { id } = req.params as { id: string };
-    const persona = getPersona(Number(id));
+    const persona = await getPersona(Number(id));
     if (!persona) return { success: false, error: "Persona not found" };
     return { success: true, data: persona };
   });
 
-  app.post("/api/personas", (req, reply) => {
+  app.post("/api/personas", async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const persona = createPersona({
+    const persona = await createPersona({
       name: body.name as string,
       displayName: body.displayName as string,
       bio: (body.bio as string) ?? "",

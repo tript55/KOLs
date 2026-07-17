@@ -175,7 +175,7 @@ export default function Posts() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-gray-500">Loading posts...</p>
+        <p className="animate-pulse text-ink-2">Loading posts...</p>
       </div>
     );
   }
@@ -183,7 +183,7 @@ export default function Posts() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Posts</h2>
+        <h2 className="text-2xl font-bold text-ink-1">Posts</h2>
         <button
           onClick={() => setModalOpen(true)}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
@@ -204,7 +204,7 @@ export default function Posts() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as PostStatus | "")}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-paper-2 px-3 py-2 text-sm text-ink-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         >
           <option value="">All Statuses</option>
           {ALL_STATUSES.map((s) => (
@@ -216,7 +216,7 @@ export default function Posts() {
         <select
           value={platformFilter}
           onChange={(e) => setPlatformFilter(e.target.value as Platform | "")}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="rounded-lg border border-gray-300 bg-paper-2 px-3 py-2 text-sm text-ink-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         >
           <option value="">All Platforms</option>
           {ALL_PLATFORMS.map((p) => (
@@ -234,7 +234,7 @@ export default function Posts() {
             key: "content",
             header: "Content",
             render: (post: Post) => (
-              <span className="block max-w-xs truncate text-gray-700">
+              <span className="block max-w-xs truncate text-ink-1">
                 {post.content ?? "\u2014"}
               </span>
             ),
@@ -305,7 +305,7 @@ export default function Posts() {
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-1 mb-1">
               Platform
             </label>
             <select
@@ -321,7 +321,7 @@ export default function Posts() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-1 mb-1">
               Status
             </label>
             <select
@@ -337,7 +337,7 @@ export default function Posts() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-1 mb-1">
               Persona
             </label>
             <select
@@ -354,7 +354,7 @@ export default function Posts() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-1 mb-1">
               Template (optional)
             </label>
             <select
@@ -372,7 +372,7 @@ export default function Posts() {
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-ink-1">
                 Content (optional)
               </label>
               <button
@@ -394,7 +394,7 @@ export default function Posts() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-ink-1 mb-1">
               Scheduled At (optional)
             </label>
             <input
@@ -411,7 +411,7 @@ export default function Posts() {
                 setModalOpen(false);
                 setEditingPost(null);
               }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
             >
               Cancel
             </button>

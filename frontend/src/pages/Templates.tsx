@@ -116,7 +116,7 @@ export default function Templates() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-gray-500">Loading templates...</p>
+        <p className="animate-pulse text-ink-2">Loading templates...</p>
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function Templates() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Templates</h2>
+        <h2 className="text-2xl font-bold text-ink-1">Templates</h2>
         <button
           onClick={() => setModalOpen(true)}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
@@ -203,7 +203,7 @@ export default function Templates() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Create Template">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Name</label>
             <input
               type="text"
               value={formName}
@@ -213,7 +213,7 @@ export default function Templates() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Type</label>
             <select
               value={formType}
               onChange={(e) => setFormType(e.target.value as TemplateType)}
@@ -225,7 +225,7 @@ export default function Templates() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Platform</label>
             <select
               value={formPlatform}
               onChange={(e) => setFormPlatform(e.target.value as Platform)}
@@ -237,7 +237,7 @@ export default function Templates() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Persona</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Persona</label>
             <select
               value={formPersonaId}
               onChange={(e) => setFormPersonaId(e.target.value)}
@@ -250,7 +250,7 @@ export default function Templates() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">System Prompt</label>
             <textarea
               value={formSystemPrompt}
               onChange={(e) => setFormSystemPrompt(e.target.value)}
@@ -260,7 +260,7 @@ export default function Templates() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">User Prompt Template</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">User Prompt Template</label>
             <textarea
               value={formUserPromptTemplate}
               onChange={(e) => setFormUserPromptTemplate(e.target.value)}
@@ -271,7 +271,7 @@ export default function Templates() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Max Tokens</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Max Tokens</label>
             <input
               type="number"
               value={formMaxTokens}
@@ -282,7 +282,7 @@ export default function Templates() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Temperature</label>
             <input
               type="number"
               value={formTemperature}
@@ -294,7 +294,7 @@ export default function Templates() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hashtags</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Hashtags</label>
             <input
               type="text"
               value={formHashtags}
@@ -307,7 +307,7 @@ export default function Templates() {
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
             >
               Cancel
             </button>

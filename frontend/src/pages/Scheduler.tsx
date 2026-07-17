@@ -271,7 +271,7 @@ export default function Scheduler() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-gray-500">
+        <p className="animate-pulse text-ink-2">
           Loading Facebook workflow...
         </p>
       </div>
@@ -282,8 +282,8 @@ export default function Scheduler() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Facebook Ops</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-2xl font-bold text-ink-1">Facebook Ops</h2>
+          <p className="text-sm text-ink-2">
             AI workflow for research, drafting, compliance, scheduling,
             publishing, and learning.
           </p>
@@ -292,7 +292,7 @@ export default function Scheduler() {
           type="button"
           onClick={() => load(true)}
           disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-paper-2 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 disabled:opacity-50"
         >
           <ArrowPathIcon
             className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -309,11 +309,11 @@ export default function Scheduler() {
 
       {schedulerStatus && (
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <div className="bg-paper-2 rounded-xl border border-border p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm text-gray-500">Workflow Scheduler</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-1">
+                <p className="text-sm text-ink-2">Workflow Scheduler</p>
+                <p className="text-2xl font-semibold text-ink-1 mt-1">
                   {schedulerStatus.isRunning ? "Running" : "Stopped"}
                 </p>
               </div>
@@ -330,14 +330,14 @@ export default function Scheduler() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
               <div>
-                <p className="text-sm text-gray-500">Cron</p>
-                <p className="text-sm font-mono text-gray-900 mt-1 break-all">
+                <p className="text-sm text-ink-2">Cron</p>
+                <p className="text-sm font-mono text-ink-1 mt-1 break-all">
                   {schedulerStatus.cronExpression}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Next Run</p>
-                <p className="text-sm font-semibold text-gray-900 mt-1">
+                <p className="text-sm text-ink-2">Next Run</p>
+                <p className="text-sm font-semibold text-ink-1 mt-1">
                   {schedulerStatus.nextRunEstimate
                     ? new Date(schedulerStatus.nextRunEstimate).toLocaleString()
                     : "N/A"}
@@ -349,8 +349,8 @@ export default function Scheduler() {
                 )}
               </div>
               <div>
-                <p className="text-sm text-gray-500">Next Facebook Slot</p>
-                <p className="text-sm font-semibold text-gray-900 mt-1">
+                <p className="text-sm text-ink-2">Next Facebook Slot</p>
+                <p className="text-sm font-semibold text-ink-1 mt-1">
                   {nextPost?.scheduledAt
                     ? new Date(nextPost.scheduledAt).toLocaleString()
                     : "No queued post"}
@@ -380,10 +380,10 @@ export default function Scheduler() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <div className="bg-paper-2 rounded-xl border border-border p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <SparklesIcon className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-ink-1">
                 Quick Schedule
               </h3>
             </div>
@@ -403,7 +403,7 @@ export default function Scheduler() {
 
             <form onSubmit={handleSchedule} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-1 mb-1">
                   Persona
                 </label>
                 <select
@@ -421,7 +421,7 @@ export default function Scheduler() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-1 mb-1">
                   Template
                 </label>
                 <select
@@ -448,7 +448,7 @@ export default function Scheduler() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-1 mb-1">
                     Audience Segment
                   </label>
                   <input
@@ -459,7 +459,7 @@ export default function Scheduler() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-1 mb-1">
                     Strategy Key
                   </label>
                   <input
@@ -473,7 +473,7 @@ export default function Scheduler() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-1 mb-1">
                     Target Slot Label
                   </label>
                   <input
@@ -484,7 +484,7 @@ export default function Scheduler() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-1 mb-1">
                     Scheduled At
                   </label>
                   <input
@@ -555,10 +555,10 @@ export default function Scheduler() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-ink-1">
               Facebook Queue
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-ink-2">
               Posts moving through research, drafting, compliance, and
               publishing.
             </p>
@@ -572,12 +572,12 @@ export default function Scheduler() {
               header: "Post",
               render: (post: Post) => (
                 <div className="max-w-sm whitespace-normal">
-                  <p className="font-medium text-gray-900 line-clamp-2">
+                  <p className="font-medium text-ink-1 line-clamp-2">
                     {post.content ??
                       post.metadata?.draftContent ??
                       "Awaiting draft"}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-2 mt-1">
                     {post.metadata?.strategyKey ?? "facebook-plan"} •{" "}
                     {post.metadata?.audienceSegment ?? "vietnamese-investor"}
                   </p>
@@ -590,7 +590,7 @@ export default function Scheduler() {
               render: (post: Post) => (
                 <div className="space-y-1">
                   <StatusBadge status={post.status} />
-                  <p className="text-xs text-gray-500 capitalize">
+                  <p className="text-xs text-ink-2 capitalize">
                     {post.workflowStage.replace(/_/g, " ")}
                   </p>
                 </div>
@@ -606,7 +606,7 @@ export default function Scheduler() {
                       ? new Date(post.scheduledAt).toLocaleString()
                       : "Not set"}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-ink-2">
                     Attempts: {post.workflowAttempts}
                   </p>
                 </div>

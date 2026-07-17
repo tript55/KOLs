@@ -15,7 +15,7 @@ export function registerTemplateRoutes(app: FastifyInstance): void {
     "/api/templates",
     async (req): Promise<PaginatedResponse<unknown>> => {
       const query = req.query as { personaId?: string };
-      const templates = listTemplates(
+      const templates = await listTemplates(
         query.personaId ? Number(query.personaId) : undefined,
       );
       return {
@@ -30,14 +30,14 @@ export function registerTemplateRoutes(app: FastifyInstance): void {
 
   app.get("/api/templates/:id", async (req): Promise<ApiResponse<unknown>> => {
     const { id } = req.params as { id: string };
-    const template = getTemplate(Number(id));
+    const template = await getTemplate(Number(id));
     if (!template) return { success: false, error: "Template not found" };
     return { success: true, data: template };
   });
 
-  app.post("/api/templates", (req, reply) => {
+  app.post("/api/templates", async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const template = createTemplate({
+    const template = await createTemplate({
       personaId: body.personaId as number,
       name: body.name as string,
       type: (body.type as "market_update") ?? "market_update",

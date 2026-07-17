@@ -27,8 +27,10 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional(),
 
-  // Database
-  DATABASE_PATH: z.string().default("./data/koldb.sqlite"),
+  // Database (Supabase)
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  DATABASE_URL: z.string().url().default("postgres://postgres:postgres@localhost:5432/postgres"),
 
   // Content
   CONTENT_LANGUAGE: z.string().default("vi"),

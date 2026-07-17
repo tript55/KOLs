@@ -23,7 +23,7 @@ import type {
 export function registerPostRoutes(app: FastifyInstance): void {
   app.get("/api/posts", async (req): Promise<PaginatedResponse<unknown>> => {
     const query = req.query as { status?: string; personaId?: string };
-    const posts = listScheduledPosts({
+    const posts = await listScheduledPosts({
       status: query.status,
       personaId: query.personaId ? Number(query.personaId) : undefined,
     });
@@ -38,14 +38,14 @@ export function registerPostRoutes(app: FastifyInstance): void {
 
   app.get("/api/posts/:id", async (req): Promise<ApiResponse<unknown>> => {
     const { id } = req.params as { id: string };
-    const post = getScheduledPost(Number(id));
+    const post = await getScheduledPost(Number(id));
     if (!post) return { success: false, error: "Post not found" };
     return { success: true, data: post };
   });
 
-  app.post("/api/posts", (req, reply) => {
+  app.post("/api/posts", async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const post = createScheduledPost({
+    const post = await createScheduledPost({
       templateId: (body.templateId as number | null) ?? null,
       personaId: body.personaId as number,
       platform: (body.platform as Platform) ?? "facebook",
@@ -61,16 +61,16 @@ export function registerPostRoutes(app: FastifyInstance): void {
     reply.send({ success: true, data: post });
   });
 
-  app.put("/api/posts/:id", (req, reply) => {
+  app.put("/api/posts/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = req.body as Record<string, unknown>;
-    const existing = getScheduledPost(Number(id));
+    const existing = await getScheduledPost(Number(id));
     if (!existing)
       return reply
         .status(404)
         .send({ success: false, error: "Post not found" });
 
-    const updated = updateScheduledPost(Number(id), {
+    const updated = await updateScheduledPost(Number(id), {
       templateId:
         body.templateId !== undefined
           ? (body.templateId as number | null)
@@ -124,9 +124,9 @@ export function registerPostRoutes(app: FastifyInstance): void {
     reply.send({ success: true, data: updated });
   });
 
-  app.delete("/api/posts/:id", (req, reply) => {
+  app.delete("/api/posts/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const deleted = deleteScheduledPost(Number(id));
+    const deleted = await deleteScheduledPost(Number(id));
     if (!deleted)
       return reply
         .status(404)
@@ -161,7 +161,7 @@ export function registerPostRoutes(app: FastifyInstance): void {
         ...(body.metadata as Record<string, unknown> | undefined),
       };
 
-      const post = createScheduledPost({
+      const post = await createScheduledPost({
         templateId: (body.templateId as number | null) ?? null,
         personaId: body.personaId as number,
         platform: "facebook",
@@ -202,7 +202,7 @@ export function registerPostRoutes(app: FastifyInstance): void {
         success: true,
         data: {
           scheduler: getSchedulerStatus(),
-          queue: getWorkflowQueueSummary(now),
+          queue: await getWorkflowQueueSummary(now),
         },
       };
     },

@@ -1,1 +1,47 @@
+/* Hallmark · genre: playful · theme: happiness
+ * states: N/A (global css)
+ * contrast: pass
+ */
 @import "tailwindcss";
+
+@theme {
+  --color-paper-1: #FFF7EB;
+  --color-paper-2: #FFFFFF;
+  --color-accent: #FF5A5F;
+  --color-accent-hover: #E34A4F;
+  --color-accent-subtle: #FFE6E7;
+  --color-ink-1: #2D3748;
+  --color-ink-2: #4A5568;
+  --color-ink-3: #A0AEC0;
+  --color-border: #FFEDD5;
+  --color-brand-success: #48BB78;
+  --color-brand-success-subtle: #C6F6D5;
+  --color-brand-warning: #ECC94B;
+  --color-brand-warning-subtle: #FEFCBF;
+  --color-brand-info: #4299E1;
+  --color-brand-info-subtle: #BEE3F8;
+  
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'Quicksand', sans-serif;
+}
+
+html, body {
+  overflow-x: clip;
+  background-color: var(--color-paper-1);
+  color: var(--color-ink-1);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-style: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+td, p, span, div {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}

@@ -6,6 +6,7 @@ import {
   updateWorkflowState,
 } from "../models/repository.js";
 import { getDateContext, getMarketContext } from "./market-data.js";
+import { getNewsContext, getNewsSnapshot } from "./news-fetcher.js";
 import { generateContent, generateCustomContent } from "./content-generator.js";
 import { fetchFacebookFeedback, publishContent } from "./publisher.js";
 import type {
@@ -24,7 +25,7 @@ const BANNED_PHRASES = ["bão lời", "chắc chắn thắng", "all-in", "không
 export async function runFacebookWorkflow(
   postId: number,
 ): Promise<ScheduledPost> {
-  const initial = getScheduledPost(postId);
+  const initial = await getScheduledPost(postId);
   if (!initial) {
     throw new Error(`Post ${postId} not found`);
   }
@@ -62,7 +63,7 @@ export async function runFacebookWorkflow(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown workflow error";
-    const failed = updateWorkflowState(post.id, {
+    const failed = await updateWorkflowState(post.id, {
       status: "failed",
       lastError: message,
       workflowAttempts: post.workflowAttempts + 1,
@@ -81,10 +82,12 @@ async function advanceResearch(post: ScheduledPost): Promise<ScheduledPost> {
     return post;
   }
 
-  const recentLearningNotes = listScheduledPosts({
+  const posts = await listScheduledPosts({
     status: "posted",
     personaId: post.personaId,
-  })
+  });
+
+  const recentLearningNotes = posts
     .filter((entry) => entry.platform === "facebook")
     .slice(-5)
     .flatMap((entry) => {
@@ -93,10 +96,18 @@ async function advanceResearch(post: ScheduledPost): Promise<ScheduledPost> {
     })
     .slice(0, 5);
 
-  const [marketContext, dateContext] = await Promise.all([
+  const [marketContext, dateContext, newsContext] = await Promise.all([
     getMarketContext(),
     Promise.resolve(getDateContext()),
+    getNewsContext(),
   ]);
+
+  // Extract Fear & Greed for dedicated sentiment context
+  const snapshot = await getNewsSnapshot();
+  const sentimentContext = snapshot.fearGreed
+    ? `CHỈ SỐ TÂM LÝ THỊ TRƯỜNG: ${snapshot.fearGreed.value}/100 — ${snapshot.fearGreed.valueText} (${snapshot.fearGreed.value <= 25 ? "cơ hội mua tiềm năng" : snapshot.fearGreed.value >= 75 ? "cảnh báo tham lam" : "thị trường cân bằng"})`
+    : "";
+
   const metadata = withMetadata(post, {
     research: {
       marketContext,
@@ -104,6 +115,8 @@ async function advanceResearch(post: ScheduledPost): Promise<ScheduledPost> {
       strategyTags: deriveStrategyTags(post),
       recentLearningNotes,
       generatedAt: new Date().toISOString(),
+      newsContext: newsContext || undefined,
+      sentimentContext: sentimentContext || undefined,
     },
   });
 
@@ -132,10 +145,14 @@ async function advanceIdeaGeneration(
     "Tạo 3 ý tưởng bài đăng ngắn gọn bằng JSON array.",
     "Mỗi item gồm 4 trường: angle, hook, audience, rationale.",
     "Tập trung vào nhà đầu tư Việt Nam và nhân viên có tiền nhàn rỗi để đầu tư.",
+    "Ưu tiên các angle bám sát tin tức thực tế và tâm lý thị trường hiện tại.",
     `Tags chiến lược: ${research.strategyTags.join(", ") || "facebook, vietnam"}`,
     `Ghi chú học tập gần đây: ${research.recentLearningNotes.join(" | ") || "không có"}`,
     research.dateContext,
     research.marketContext,
+    // Inject live news context only if available
+    ...(research.newsContext ? [research.newsContext] : []),
+    ...(research.sentimentContext ? [research.sentimentContext] : []),
   ].join("\n\n");
 
   const result = await generateCustomContent(
@@ -182,6 +199,11 @@ async function advanceDrafting(post: ScheduledPost): Promise<ScheduledPost> {
     rationale: selectedIdea.rationale,
     market_data: research.marketContext,
     date: research.dateContext,
+    // Inject live news & sentiment context if research captured them
+    ...(research.newsContext ? { news_context: research.newsContext } : {}),
+    ...(research.sentimentContext
+      ? { sentiment_context: research.sentimentContext }
+      : {}),
   });
 
   const nextMetadata = withMetadata(post, {
@@ -301,21 +323,21 @@ async function advanceFeedback(post: ScheduledPost): Promise<ScheduledPost> {
     feedback: snapshot,
   });
 
-  recordAnalytics({
+  await recordAnalytics({
     postId: post.id,
     platform: "facebook",
     eventType: "like",
     count: snapshot.likes,
     recordedAt: snapshot.fetchedAt,
   });
-  recordAnalytics({
+  await recordAnalytics({
     postId: post.id,
     platform: "facebook",
     eventType: "comment",
     count: snapshot.comments,
     recordedAt: snapshot.fetchedAt,
   });
-  recordAnalytics({
+  await recordAnalytics({
     postId: post.id,
     platform: "facebook",
     eventType: "share",
@@ -476,11 +498,11 @@ function asWorkflowMetadata(
   return metadata as FacebookWorkflowMetadata;
 }
 
-function mustUpdate(
+async function mustUpdate(
   postId: number,
   patch: Parameters<typeof updateWorkflowState>[1],
-): ScheduledPost {
-  const updated = updateWorkflowState(postId, patch);
+): Promise<ScheduledPost> {
+  const updated = await updateWorkflowState(postId, patch);
   if (!updated) {
     throw new Error(`Post ${postId} disappeared during workflow update`);
   }

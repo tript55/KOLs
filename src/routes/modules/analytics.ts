@@ -15,7 +15,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance): void {
   app.get(
     "/api/stats/dashboard",
     async (): Promise<ApiResponse<DashboardStats>> => {
-      return { success: true, data: getDashboardStats() };
+      return { success: true, data: await getDashboardStats() };
     },
   );
 
@@ -27,7 +27,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance): void {
       if (postId !== undefined && Number.isNaN(postId)) {
         return { success: false, error: "Invalid postId" };
       }
-      return { success: true, data: getAnalyticsByPost(postId) };
+      return { success: true, data: await getAnalyticsByPost(postId) };
     },
   );
 
@@ -36,7 +36,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance): void {
     async (req): Promise<ApiResponse<RecentPostWithAnalytics[]>> => {
       const query = req.query as { limit?: string };
       const limit = query.limit ? Number(query.limit) : undefined;
-      return { success: true, data: getRecentPosts(limit) };
+      return { success: true, data: await getRecentPosts(limit) };
     },
   );
 }

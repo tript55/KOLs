@@ -1,33 +1,5 @@
 # AGENTS.md — crypto-kol
 
-## Codebase Navigation: Graphify Knowledge Graph
-
-This project has a Graphify knowledge graph at `graphify-out/graph.json`,
-with a human-readable summary at `graphify-out/GRAPH_REPORT.md`.
-
-**Before searching, grepping, or reading files to understand the codebase,
-check the graph first:**
-
-1. For architecture / "how does X work" / "what calls Y" questions:
-   run `graphify query "<question>"` and use the returned nodes/edges
-   as your primary source. Do not fall back to `grep`/`find`/reading
-   files wholesale unless the query returns nothing useful.
-
-2. For broad orientation (module boundaries, entry points, god nodes):
-   read `graphify-out/GRAPH_REPORT.md` instead of walking the tree.
-
-3. Only read raw source files once the graph has told you _which_
-   files are relevant and _why_ (via EXTRACTED/INFERRED edges) — then
-   read just those files, not the whole directory.
-
-4. If `graphify-out/graph.json` is missing or stale (post branch switch,
-   large refactor), run `/graphify .` to rebuild before falling back
-   to raw search.
-
-**Priority order:** graphify query > GRAPH_REPORT.md > targeted file
-read > grep/find. Raw recursive search (`grep -r`, `find .`, `ls -R`)
-should be a last resort, not a first move.
-
 ## Project Layout
 
 - **Backend**: `src/` — Fastify 5 API server, TypeScript ESM, Node 22+
@@ -80,3 +52,16 @@ should be a last resort, not a first move.
 - Persona "Crypto Minh" is seeded by default with 3 Facebook templates
 - Template `user_prompt_template` uses `{{variable}}` placeholders, replaced at generation time
 - Post statuses: `draft → scheduled → generating → posted | failed`
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

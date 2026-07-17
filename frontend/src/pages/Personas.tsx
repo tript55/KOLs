@@ -80,7 +80,7 @@ export default function Personas() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-gray-500">Loading personas...</p>
+        <p className="animate-pulse text-ink-2">Loading personas...</p>
       </div>
     );
   }
@@ -88,7 +88,7 @@ export default function Personas() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Personas</h2>
+        <h2 className="text-2xl font-bold text-ink-1">Personas</h2>
         <button
           onClick={() => setModalOpen(true)}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
@@ -122,7 +122,7 @@ export default function Personas() {
             key: 'targetPlatforms',
             header: 'Platforms',
             render: (persona: Persona) => (
-              <span className="text-gray-700">
+              <span className="text-ink-1">
                 {persona.targetPlatforms.join(', ')}
               </span>
             ),
@@ -131,7 +131,7 @@ export default function Personas() {
             key: 'expertise',
             header: 'Expertise',
             render: (persona: Persona) => (
-              <span className="block max-w-xs truncate text-gray-700">
+              <span className="block max-w-xs truncate text-ink-1">
                 {persona.expertise.join(', ') || '\u2014'}
               </span>
             ),
@@ -150,7 +150,7 @@ export default function Personas() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Create Persona">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Name</label>
             <input
               type="text"
               value={formName}
@@ -161,7 +161,7 @@ export default function Personas() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Display Name</label>
             <input
               type="text"
               value={formDisplayName}
@@ -172,7 +172,7 @@ export default function Personas() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Bio</label>
             <textarea
               value={formBio}
               onChange={(e) => setFormBio(e.target.value)}
@@ -183,7 +183,7 @@ export default function Personas() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Expertise (comma-separated)</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Expertise (comma-separated)</label>
             <input
               type="text"
               value={formExpertise}
@@ -193,7 +193,7 @@ export default function Personas() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tone of Voice</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Tone of Voice</label>
             <select
               value={formToneOfVoice}
               onChange={(e) => setFormToneOfVoice(e.target.value as ToneOfVoice)}
@@ -205,10 +205,10 @@ export default function Personas() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Target Platforms</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Target Platforms</label>
             <div className="flex gap-4">
               {ALL_PLATFORMS.map((platform) => (
-                <label key={platform} className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <label key={platform} className="inline-flex items-center gap-2 text-sm text-ink-1">
                   <input
                     type="checkbox"
                     checked={formTargetPlatforms.includes(platform)}
@@ -221,7 +221,7 @@ export default function Personas() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL (optional)</label>
+            <label className="block text-sm font-medium text-ink-1 mb-1">Avatar URL (optional)</label>
             <input
               type="text"
               value={formAvatarUrl}
@@ -234,7 +234,7 @@ export default function Personas() {
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
             >
               Cancel
             </button>

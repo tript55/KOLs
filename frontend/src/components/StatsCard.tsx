@@ -7,13 +7,15 @@ interface StatsCardProps {
   color?: string;
 }
 
-export default function StatsCard({ label, value, icon, color = 'text-blue-600' }: StatsCardProps) {
+export default function StatsCard({ label, value, icon, color = 'text-accent bg-accent-subtle' }: StatsCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 shadow-sm">
-      <div className={`shrink-0 ${color}`}>{icon}</div>
+    <div className="bg-paper-2 rounded-[1.5rem] border border-border p-5 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className={`shrink-0 p-4 rounded-[1.25rem] ${color}`}>
+        {icon}
+      </div>
       <div className="min-w-0">
-        <p className="text-sm text-gray-500 truncate">{label}</p>
-        <p className="text-2xl font-semibold text-gray-900">{value}</p>
+        <p className="text-sm font-semibold font-body text-ink-2 truncate uppercase tracking-wider">{label}</p>
+        <p className="text-3xl font-extrabold font-display text-ink-1 mt-1">{value}</p>
       </div>
     </div>
   );

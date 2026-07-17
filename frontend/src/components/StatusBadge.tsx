@@ -1,11 +1,11 @@
 import type { PostStatus } from '../types';
 
 const statusStyles: Record<PostStatus, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  scheduled: 'bg-blue-100 text-blue-700',
-  generating: 'bg-yellow-100 text-yellow-700',
-  posted: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
+  draft: 'bg-paper-1 text-ink-2 border-border',
+  scheduled: 'bg-brand-warning-subtle text-brand-warning border-brand-warning/30',
+  generating: 'bg-brand-info-subtle text-brand-info border-brand-info/30',
+  posted: 'bg-brand-success-subtle text-brand-success border-brand-success/30',
+  failed: 'bg-accent-subtle text-accent border-accent/30',
 };
 
 interface StatusBadgeProps {
@@ -15,7 +15,7 @@ interface StatusBadgeProps {
 export default function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusStyles[status]}`}
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold capitalize border ${statusStyles[status]}`}
     >
       {status}
     </span>

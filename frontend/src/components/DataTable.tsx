@@ -21,33 +21,33 @@ export default function DataTable<T>({
 }: DataTableProps<T>) {
   if (data.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+      <div className="bg-paper-2 rounded-[2rem] border border-border p-8 text-center text-ink-3">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-paper-2 rounded-[1.5rem] overflow-hidden border border-border shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
+            <tr className="bg-paper-1/50 border-b border-border">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-4 text-left text-xs font-bold text-ink-2 uppercase tracking-wider font-display"
                 >
                   {col.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {data.map((item) => (
-              <tr key={keyExtractor(item)} className="hover:bg-gray-50 transition-colors">
+              <tr key={keyExtractor(item)} className="hover:bg-paper-1/30 transition-colors">
                 {columns.map((col) => (
-                  <td key={col.key} className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                  <td key={col.key} className="px-6 py-4 text-ink-1 whitespace-nowrap">
                     {col.render(item)}
                   </td>
                 ))}

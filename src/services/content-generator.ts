@@ -16,7 +16,7 @@ export async function generateContent(
   templateId: number,
   context: Record<string, string> = {},
 ): Promise<GenerateContentResponse> {
-  const template = getTemplate(templateId);
+  const template = await getTemplate(templateId);
   if (!template) throw new Error(`Template ${templateId} not found`);
 
   const provider = getLLMProvider();

@@ -10,7 +10,7 @@ async function main(): Promise<void> {
 
   // Initialize database
   console.log("[DB] Running migrations...");
-  migrate();
+  await migrate();
   console.log("[DB] Migrations complete");
 
   // Start scheduler
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   const shutdown = async () => {
     console.log("\n[Server] Shutting down...");
     stopScheduler();
-    closeDatabase();
+    await closeDatabase();
     await app.close();
     process.exit(0);
   };

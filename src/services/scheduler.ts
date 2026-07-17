@@ -55,7 +55,7 @@ export function getSchedulerStatus(): SchedulerStatus {
 
 async function processScheduledPosts(): Promise<void> {
   const now = new Date().toISOString();
-  const duePosts = getDueWorkflowPosts(now);
+  const duePosts = await getDueWorkflowPosts(now);
 
   for (const post of duePosts) {
     try {
@@ -71,13 +71,13 @@ async function processScheduledPosts(): Promise<void> {
         continue;
       }
 
-      updateWorkflowState(post.id, {
+      await updateWorkflowState(post.id, {
         status: "failed",
         lastError: `Platform ${post.platform} is not supported by the workflow scheduler`,
       });
     } catch (err) {
       console.error(`[Scheduler] Failed to process post ${post.id}:`, err);
-      updateWorkflowState(post.id, {
+      await updateWorkflowState(post.id, {
         status: "failed",
         lastError: (err as Error).message,
       });
@@ -89,7 +89,7 @@ async function processScheduledPosts(): Promise<void> {
  * Process a single post immediately (bypass scheduler).
  */
 export async function processPostNow(postId: number): Promise<void> {
-  const posts = listScheduledPosts().filter((p) => p.id === postId);
+  const posts = (await listScheduledPosts()).filter((p) => p.id === postId);
   const post = posts[0];
   if (!post) throw new Error(`Post ${postId} not found`);
 

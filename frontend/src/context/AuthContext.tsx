@@ -29,18 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const role = user?.user_metadata?.role === "admin" ? "admin" : (user ? "viewer" : null);
+  const role =
+    user?.user_metadata?.role === "admin" ? "admin" : user ? "viewer" : null;
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -49,18 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGithub = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
-      },
     });
   };
 
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}${window.location.pathname}`,
-      },
     });
   };
 

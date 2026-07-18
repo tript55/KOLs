@@ -21,6 +21,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      const devUser = {
+        id: "dev-user",
+        email: "dev@localhost",
+        user_metadata: { role: "admin" },
+      } as unknown as User;
+      setUser(devUser);
+      setSession({
+        access_token: "dev-token",
+        user: devUser,
+      } as unknown as Session);
+      setLoading(false);
+      return;
+    }
+
     // Get active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);

@@ -101,4 +101,15 @@ export async function migrate(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_scheduled_posts_platform_status_stage_scheduled_at
     ON scheduled_posts(platform, status, workflow_stage, scheduled_at);
   `;
+
+  // Grant admin role to specific user via db migration
+  try {
+    await db`
+      UPDATE auth.users
+      SET raw_user_meta_data = COALESCE(raw_user_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+      WHERE email = 'trongtri92nd@gmail.com';
+    `;
+  } catch (e) {
+    console.warn("Could not update admin role in auth.users:", e);
+  }
 }

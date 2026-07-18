@@ -4,11 +4,13 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getPersonas, createPersona } from '../lib/api';
 import type { Persona, ToneOfVoice, Platform } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const ALL_TONES: ToneOfVoice[] = ['professional', 'casual', 'humorous', 'educational', 'aggressive'];
 const ALL_PLATFORMS: Platform[] = ['facebook', 'twitter', 'telegram'];
 
 export default function Personas() {
+  const { role } = useAuth();
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,13 +91,15 @@ export default function Personas() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-ink-1">Personas</h2>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Create Persona
-        </button>
+        {role === 'admin' && (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Create Persona
+          </button>
+        )}
       </div>
 
       {error && (

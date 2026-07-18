@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.dev.yml",
   "service": "app",
   "workspaceFolder": "/workspace",
-  
+
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -39,6 +39,10 @@
         "ms-vscode.vscode-typescript-next"
       ],
       "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": { "path": "/bin/zsh" }
+        },
         "typescript.tsdk": "node_modules/typescript/lib",
         "typescript.enablePromptUseWorkspaceTsdk": true,
         "editor.formatOnSave": true,

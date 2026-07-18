@@ -7,6 +7,8 @@ services:
     volumes:
       # Mount the entire workspace for hot reload
       - ..:/workspace:cached
+      # Persist zsh history across container rebuilds
+      - zsh-data:/home/node/.zsh
     #   # Named volume for node_modules to avoid host/container conflicts
     #   - backend-node-modules:/workspace/node_modules
     #   - frontend-node-modules:/workspace/frontend/node_modules
@@ -49,6 +51,7 @@ volumes:
   backend-node-modules:
   frontend-node-modules:
   sqlite-data:
+  zsh-data:
 
 networks:
   dev-network:

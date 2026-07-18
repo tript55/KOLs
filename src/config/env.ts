@@ -29,6 +29,7 @@ const envSchema = z.object({
 
   // Database (Supabase)
   SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   DATABASE_URL: z.string().url().default("postgres://postgres:postgres@localhost:5432/postgres"),
 

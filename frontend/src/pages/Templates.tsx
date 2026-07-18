@@ -4,6 +4,7 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { getTemplates, getPersonas, createTemplate, generateContent } from '../lib/api';
 import type { Template, TemplateType, Platform, Persona, CreateTemplateRequest, GenerateResponse } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const ALL_TYPES: TemplateType[] = ['market_update', 'news_commentary', 'educational', 'meme', 'alpha_call', 'engagement'];
 const ALL_PLATFORMS: Platform[] = ['facebook', 'twitter', 'telegram'];
@@ -13,6 +14,7 @@ function formatLabel(value: string): string {
 }
 
 export default function Templates() {
+  const { role } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,13 +127,15 @@ export default function Templates() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-ink-1">Templates</h2>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Create Template
-        </button>
+        {role === 'admin' && (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Create Template
+          </button>
+        )}
       </div>
 
       {error && (

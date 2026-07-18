@@ -15,14 +15,26 @@ import type {
   WorkflowStatus,
 } from "../types";
 
+import { supabase } from "./supabase";
+
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((options?.headers as Record<string, string>) || {}),
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${BASE_URL}${url}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
     ...options,
+    headers,
   });
 
   const json = (await response.json()) as {

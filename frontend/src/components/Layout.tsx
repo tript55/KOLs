@@ -8,8 +8,10 @@ import {
   ClockIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowLeftOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import ServerStatusWidget from './ServerStatusWidget';
+import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: HomeIcon },
@@ -21,6 +23,7 @@ const navItems = [
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, role, signOut } = useAuth();
 
   return (
     <div className="flex h-screen bg-paper-1 overflow-hidden font-body">
@@ -77,6 +80,32 @@ export default function Layout() {
           </nav>
 
           <ServerStatusWidget />
+
+          {/* User Profile / Logout */}
+          <div className="p-4 lg:p-6 border-t border-border mt-auto shrink-0 bg-paper-1/50">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  {user?.email?.[0].toUpperCase() || 'U'}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-ink-1 truncate">
+                    {user?.email || 'User'}
+                  </span>
+                  <span className="text-xs text-ink-3 capitalize">
+                    {role || 'viewer'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={signOut}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full"
+              >
+                <ArrowLeftOnRectangleIcon className="w-5 h-5 shrink-0" />
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       </aside>
 

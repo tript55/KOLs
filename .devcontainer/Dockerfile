@@ -18,7 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     jq \
     sqlite3 \
-    && rm -rf /var/lib/apt/lists/*
+    zsh \
+    zsh-autosuggestions \
+    zsh-syntax-highlighting \
+    && rm -rf /var/lib/apt/lists/* \
+    && chsh -s /bin/zsh node
 
 # Install custom CA certificates if they exist
 COPY certs/ca.crt /usr/local/share/ca-certificates/custom-ca.crt
@@ -47,6 +51,13 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 
 # Switch to node user
 USER node
+
+# Install Oh My Zsh
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+# Append zsh-autosuggestions and zsh-syntax-highlighting to .zshrc
+RUN echo 'source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /home/node/.zshrc && \
+    echo 'source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' >> /home/node/.zshrc
 
 RUN uv tool install --python 3.11 graphifyy --system-certs
 ENV PATH="/home/node/.local/bin:${PATH}"

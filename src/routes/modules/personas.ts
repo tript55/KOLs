@@ -9,9 +9,10 @@ import type {
   PaginatedResponse,
   Platform,
 } from "../../types/index.js";
+import { requireAuth, requireAdmin } from "../../plugins/auth.js";
 
 export function registerPersonaRoutes(app: FastifyInstance): void {
-  app.get("/api/personas", async (): Promise<PaginatedResponse<unknown>> => {
+  app.get("/api/personas", { preHandler: [requireAuth] }, async (): Promise<PaginatedResponse<unknown>> => {
     const personas = await listPersonas();
     return {
       success: true,
@@ -22,14 +23,14 @@ export function registerPersonaRoutes(app: FastifyInstance): void {
     };
   });
 
-  app.get("/api/personas/:id", async (req): Promise<ApiResponse<unknown>> => {
+  app.get("/api/personas/:id", { preHandler: [requireAuth] }, async (req): Promise<ApiResponse<unknown>> => {
     const { id } = req.params as { id: string };
     const persona = await getPersona(Number(id));
     if (!persona) return { success: false, error: "Persona not found" };
     return { success: true, data: persona };
   });
 
-  app.post("/api/personas", async (req, reply) => {
+  app.post("/api/personas", { preHandler: [requireAdmin] }, async (req, reply) => {
     const body = req.body as Record<string, unknown>;
     const persona = await createPersona({
       name: body.name as string,

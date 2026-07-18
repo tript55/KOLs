@@ -3,6 +3,8 @@ import {
   createPersona,
   getPersona,
   listPersonas,
+  updatePersona,
+  deletePersona,
 } from "../../models/repository.js";
 import type {
   ApiResponse,
@@ -43,5 +45,28 @@ export function registerPersonaRoutes(app: FastifyInstance): void {
       avatarUrl: body.avatarUrl as string | undefined,
     });
     reply.send({ success: true, data: persona });
+  });
+
+  app.put("/api/personas/:id", { preHandler: [requireAdmin] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = req.body as Record<string, unknown>;
+    const persona = await updatePersona(Number(id), {
+      name: body.name as string | undefined,
+      displayName: body.displayName as string | undefined,
+      bio: body.bio as string | undefined,
+      expertise: body.expertise as string[] | undefined,
+      toneOfVoice: body.toneOfVoice as "professional" | undefined,
+      targetPlatforms: body.targetPlatforms as Platform[] | undefined,
+      avatarUrl: body.avatarUrl as string | undefined,
+    });
+    if (!persona) return reply.status(404).send({ success: false, error: "Persona not found" });
+    reply.send({ success: true, data: persona });
+  });
+
+  app.delete("/api/personas/:id", { preHandler: [requireAdmin] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const success = await deletePersona(Number(id));
+    if (!success) return reply.status(404).send({ success: false, error: "Persona not found or could not be deleted" });
+    reply.send({ success: true });
   });
 }

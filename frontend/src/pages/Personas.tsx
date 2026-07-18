@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getPersonas, createPersona } from '../lib/api';
+import { getPersonas, createPersona, updatePersona, deletePersona } from '../lib/api';
 import type { Persona, ToneOfVoice, Platform } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,6 +16,7 @@ export default function Personas() {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingPersonaId, setEditingPersonaId] = useState<number | null>(null);
 
   const [formName, setFormName] = useState('');
   const [formDisplayName, setFormDisplayName] = useState('');
@@ -48,32 +49,65 @@ export default function Personas() {
     );
   }
 
+  function handleEdit(persona: Persona) {
+    setEditingPersonaId(persona.id);
+    setFormName(persona.name);
+    setFormDisplayName(persona.displayName);
+    setFormBio(persona.bio);
+    setFormExpertise(persona.expertise.join(', '));
+    setFormToneOfVoice(persona.toneOfVoice);
+    setFormTargetPlatforms(persona.targetPlatforms);
+    setFormAvatarUrl(persona.avatarUrl || '');
+    setModalOpen(true);
+  }
+
+  function handleCreateNew() {
+    setEditingPersonaId(null);
+    setFormName('');
+    setFormDisplayName('');
+    setFormBio('');
+    setFormExpertise('');
+    setFormToneOfVoice('professional');
+    setFormTargetPlatforms([]);
+    setFormAvatarUrl('');
+    setModalOpen(true);
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm('Are you sure you want to delete this persona?')) return;
+    try {
+      await deletePersona(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete persona');
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!formName || !formDisplayName || !formBio) return;
     setSaving(true);
     try {
-      await createPersona({
+      const payload = {
         name: formName,
         displayName: formDisplayName,
         bio: formBio,
         expertise: formExpertise.split(',').map((s) => s.trim()).filter(Boolean),
         toneOfVoice: formToneOfVoice,
         targetPlatforms: formTargetPlatforms,
-        language: 'vi',
+        language: 'vi' as const,
         avatarUrl: formAvatarUrl || undefined,
-      });
+      };
+
+      if (editingPersonaId) {
+        await updatePersona(editingPersonaId, payload);
+      } else {
+        await createPersona(payload);
+      }
       setModalOpen(false);
-      setFormName('');
-      setFormDisplayName('');
-      setFormBio('');
-      setFormExpertise('');
-      setFormToneOfVoice('professional');
-      setFormTargetPlatforms([]);
-      setFormAvatarUrl('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create persona');
+      setError(err instanceof Error ? err.message : `Failed to ${editingPersonaId ? 'update' : 'create'} persona`);
     } finally {
       setSaving(false);
     }
@@ -93,7 +127,7 @@ export default function Personas() {
         <h2 className="text-2xl font-bold text-ink-1">Personas</h2>
         {role === 'admin' && (
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={handleCreateNew}
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
           >
             <PlusIcon className="w-4 h-4" />
@@ -145,13 +179,35 @@ export default function Personas() {
             header: 'Created',
             render: (persona: Persona) => new Date(persona.createdAt).toLocaleString(),
           },
+          ...(role === 'admin' ? [{
+            key: 'actions',
+            header: 'Actions',
+            render: (persona: Persona) => (
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => handleEdit(persona)}
+                  className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                  title="Edit"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(persona.id)}
+                  className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                  title="Delete"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
+            ),
+          }] : []),
         ]}
         data={personas}
         keyExtractor={(persona) => String(persona.id)}
         emptyMessage="No personas found"
       />
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Create Persona">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingPersonaId ? "Edit Persona" : "Create Persona"}>
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-ink-1 mb-1">Name</label>
@@ -247,7 +303,7 @@ export default function Personas() {
               disabled={saving || !formName || !formDisplayName || !formBio}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {saving ? 'Creating...' : 'Create Persona'}
+              {saving ? 'Saving...' : (editingPersonaId ? 'Save Changes' : 'Create Persona')}
             </button>
           </div>
         </form>

@@ -88,6 +88,22 @@ export async function createPersona(
   });
 }
 
+export async function updatePersona(
+  id: number,
+  data: Partial<CreatePersonaRequest>,
+): Promise<Persona> {
+  return fetchJson(`/personas/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePersona(id: number): Promise<void> {
+  return fetchJson(`/personas/${id}`, {
+    method: "DELETE",
+  });
+}
+
 // Templates
 export async function getTemplates(): Promise<Template[]> {
   return fetchJson("/templates");

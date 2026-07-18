@@ -46,6 +46,36 @@ export async function createPersona(
   return (await getPersona(rows[0]!.id))!;
 }
 
+export async function updatePersona(
+  id: number,
+  data: Partial<Omit<KOLPersona, "id" | "createdAt" | "updatedAt">>,
+): Promise<KOLPersona | undefined> {
+  const db = getDatabase();
+  const updates: Record<string, any> = {};
+
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.displayName !== undefined) updates.display_name = data.displayName;
+  if (data.bio !== undefined) updates.bio = data.bio;
+  if (data.expertise !== undefined) updates.expertise = JSON.stringify(data.expertise);
+  if (data.toneOfVoice !== undefined) updates.tone_of_voice = data.toneOfVoice;
+  if (data.targetPlatforms !== undefined) updates.target_platforms = JSON.stringify(data.targetPlatforms);
+  if (data.language !== undefined) updates.language = data.language;
+  if (data.avatarUrl !== undefined) updates.avatar_url = data.avatarUrl;
+
+  if (Object.keys(updates).length === 0) return getPersona(id);
+
+  updates.updated_at = db`CURRENT_TIMESTAMP`;
+
+  await db`UPDATE personas SET ${db(updates)} WHERE id = ${id}`;
+  return getPersona(id);
+}
+
+export async function deletePersona(id: number): Promise<boolean> {
+  const db = getDatabase();
+  const result = await db`DELETE FROM personas WHERE id = ${id}`;
+  return result.count > 0;
+}
+
 // === Content Template Repository ===
 export async function getTemplate(id: number): Promise<ContentTemplate | undefined> {
   const db = getDatabase();

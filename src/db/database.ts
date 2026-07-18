@@ -10,7 +10,7 @@ export function getDatabase(): postgres.Sql {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
-      ssl: "require",
+      ssl: process.env.NODE_ENV === "production" ? "require" : false,
     });
   }
   return sql;

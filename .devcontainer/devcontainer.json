@@ -13,8 +13,7 @@
   },
 
   "containerEnv": {
-    "NODE_ENV": "development",
-    "DATABASE_PATH": "./data/koldb.sqlite"
+    "NODE_ENV": "development"
   },
 
   "forwardPorts": [3001, 5173],

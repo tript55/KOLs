@@ -11,6 +11,19 @@ async function seed(): Promise<void> {
     console.log("[Seed] Database already seeded. Running upgrades...");
     await db`UPDATE content_templates SET max_tokens = 50000 WHERE max_tokens < 50000`;
     console.log("[Seed] Upgraded max_tokens to 50000 for existing templates.");
+    
+    const educationalTemplates = await db`SELECT id FROM content_templates WHERE name = 'Giải thích khái niệm crypto'`;
+    for (const t of educationalTemplates) {
+      await db`UPDATE content_templates SET user_prompt_template = ${`{{date}}
+
+{{market_data}}
+
+{{concept}}
+
+Hãy viết một bài đăng Facebook giải thích về khái niệm được cung cấp ở trên cho người mới bắt đầu. Giải thích đơn giản, dễ hiểu, có ví dụ thực tế liên hệ với thị trường hiện tại nếu có thể.`}, hashtags = ${JSON.stringify(["#crypto", "#education", "#blockchain"])} WHERE id = ${t.id}`;
+    }
+    console.log("[Seed] Updated educational template to use dynamic {{concept}} placeholder.");
+    
     await closeDatabase();
     return;
   }
@@ -92,8 +105,10 @@ Quy tắc viết:
 
 {{market_data}}
 
-Hãy viết một bài đăng Facebook giải thích về khái niệm "DeFi" (Tài chính phi tập trung) cho người mới bắt đầu. Giải thích đơn giản, dễ hiểu, có ví dụ thực tế liên hệ với thị trường hiện tại nếu có thể.`,
-      hashtags: ["#crypto", "#defi", "#education", "#blockchain"],
+{{concept}}
+
+Hãy viết một bài đăng Facebook giải thích về khái niệm được cung cấp ở trên cho người mới bắt đầu. Giải thích đơn giản, dễ hiểu, có ví dụ thực tế liên hệ với thị trường hiện tại nếu có thể.`,
+      hashtags: ["#crypto", "#education", "#blockchain"],
     },
   ];
 

@@ -51,7 +51,7 @@ export async function migrate(): Promise<void> {
       platform TEXT NOT NULL DEFAULT 'twitter',
       system_prompt TEXT NOT NULL DEFAULT '',
       user_prompt_template TEXT NOT NULL DEFAULT '',
-      max_tokens INTEGER NOT NULL DEFAULT 500,
+      max_tokens INTEGER NOT NULL DEFAULT 50000,
       temperature REAL NOT NULL DEFAULT 0.8,
       hashtags TEXT NOT NULL DEFAULT '[]',
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

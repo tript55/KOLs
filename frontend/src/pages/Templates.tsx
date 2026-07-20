@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PlusIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, SparklesIcon, LightBulbIcon } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { getTemplates, getPersonas, createTemplate, generateContent } from '../lib/api';
+import { getTemplates, getPersonas, createTemplate, generateContent, suggestConcept } from '../lib/api';
 import type { Template, TemplateType, Platform, Persona, CreateTemplateRequest, GenerateResponse } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,6 +23,10 @@ export default function Templates() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [conceptInput, setConceptInput] = useState('');
+  const [suggestingConcept, setSuggestingConcept] = useState(false);
 
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState<TemplateType>('market_update');
@@ -98,15 +102,49 @@ export default function Templates() {
   }
 
   async function handleGenerate(templateId: number) {
+    const template = templates.find(t => t.id === templateId);
+    
+    if (template?.type === 'educational') {
+      setSelectedTemplateId(templateId);
+      setConceptInput('');
+      setGenerateModalOpen(true);
+      return;
+    }
+    
+    await generateWithTemplate(templateId, {});
+  }
+
+  async function generateWithTemplate(templateId: number, context: Record<string, string>) {
     setGenerating(templateId);
     setGeneratedContent(null);
     try {
-      const result: GenerateResponse = await generateContent({ templateId });
+      const result: GenerateResponse = await generateContent({ templateId, context });
       setGeneratedContent(result.content);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate content');
     } finally {
       setGenerating(null);
+    }
+  }
+
+  async function handleGenerateWithConcept() {
+    if (selectedTemplateId === null || !conceptInput.trim()) return;
+    
+    setGenerateModalOpen(false);
+    await generateWithTemplate(selectedTemplateId, { concept: conceptInput.trim() });
+    setSelectedTemplateId(null);
+    setConceptInput('');
+  }
+
+  async function handleSuggestConcept() {
+    setSuggestingConcept(true);
+    try {
+      const result = await suggestConcept();
+      setConceptInput(result.suggestion);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to suggest concept');
+    } finally {
+      setSuggestingConcept(false);
     }
   }
 
@@ -324,6 +362,62 @@ export default function Templates() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal 
+        open={generateModalOpen} 
+        onClose={() => {
+          setGenerateModalOpen(false);
+          setSelectedTemplateId(null);
+          setConceptInput('');
+        }} 
+        title="Generate Educational Content"
+      >
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-ink-1">
+                Concept to explain
+              </label>
+              <button
+                type="button"
+                onClick={handleSuggestConcept}
+                disabled={suggestingConcept}
+                className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 text-xs font-medium text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 transition-all"
+              >
+                <LightBulbIcon className="w-3.5 h-3.5" />
+                {suggestingConcept ? 'Đang gợi ý...' : 'AI Gợi ý'}
+              </button>
+            </div>
+            <textarea
+              value={conceptInput}
+              onChange={(e) => setConceptInput(e.target.value)}
+              placeholder="Enter the crypto concept you want to explain (e.g., 'DeFi là gì?', 'Staking hoạt động như thế nào?')"
+              rows={4}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setGenerateModalOpen(false);
+                setSelectedTemplateId(null);
+                setConceptInput('');
+              }}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleGenerateWithConcept}
+              disabled={!conceptInput.trim() || generating !== null}
+              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
+            >
+              {generating !== null ? 'Generating...' : 'Generate'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

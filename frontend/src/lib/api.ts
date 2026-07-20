@@ -170,6 +170,13 @@ export async function generateContent(
   });
 }
 
+export async function suggestConcept(): Promise<{ suggestion: string }> {
+  return fetchJson("/generate/suggest-concept", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 // Scheduler
 export async function getSchedulerStatus(): Promise<SchedulerStatus> {
   return fetchJson("/scheduler/status");

@@ -21,7 +21,10 @@ export async function generateContent(
 
   const provider = getLLMProvider();
 
-  const [marketData, dateContext] = await Promise.all([getMarketContext(), Promise.resolve(getDateContext())]);
+  const [marketData, dateContext] = await Promise.all([
+    getMarketContext(),
+    Promise.resolve(getDateContext()),
+  ]);
 
   const enrichedContext: Record<string, string> = {
     market_data: marketData,
@@ -36,7 +39,12 @@ export async function generateContent(
 
   const effectiveMaxTokens = Math.max(template.maxTokens, 50000);
 
-  return provider.generate(template.systemPrompt, userPrompt, effectiveMaxTokens, template.temperature);
+  return provider.generate(
+    template.systemPrompt,
+    userPrompt,
+    effectiveMaxTokens,
+    template.temperature,
+  );
 }
 
 /**
@@ -45,7 +53,7 @@ export async function generateContent(
 export async function generateCustomContent(
   systemPrompt: string,
   userPrompt: string,
-  maxTokens: number = 500,
+  maxTokens: number = 50000,
   temperature: number = 0.8,
 ): Promise<GenerateContentResponse> {
   const provider = getLLMProvider();

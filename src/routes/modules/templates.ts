@@ -44,7 +44,7 @@ export function registerTemplateRoutes(app: FastifyInstance): void {
       platform: (body.platform as Platform) ?? "facebook",
       systemPrompt: (body.systemPrompt as string) ?? "",
       userPromptTemplate: (body.userPromptTemplate as string) ?? "",
-      maxTokens: (body.maxTokens as number) ?? 500,
+      maxTokens: (body.maxTokens as number) ?? 50000,
       temperature: (body.temperature as number) ?? 0.8,
       hashtags: (body.hashtags as string[]) ?? [],
     });

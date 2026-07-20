@@ -31,11 +31,14 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
-  DATABASE_URL: z.string().url().default("postgres://postgres:postgres@localhost:5432/postgres"),
+  DATABASE_URL: z
+    .string()
+    .url()
+    .default("postgres://postgres:postgres@localhost:5432/postgres"),
 
   // Content
   CONTENT_LANGUAGE: z.string().default("vi"),
-  MAX_POST_TOKENS: z.coerce.number().default(500),
+  MAX_POST_TOKENS: z.coerce.number().default(50000),
 
   // Scheduling
   CONTENT_SCHEDULE: z.string().default("0 */4 * * *"),

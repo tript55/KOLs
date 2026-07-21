@@ -68,6 +68,7 @@ export default function Templates() {
   const [editHashtags, setEditHashtags] = useState('');
 
   const [editableContent, setEditableContent] = useState<string | null>(null);
+  const [generatedFromTemplateId, setGeneratedFromTemplateId] = useState<number | null>(null);
   const [postingToFacebook, setPostingToFacebook] = useState(false);
   const [postResult, setPostResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -189,9 +190,8 @@ export default function Templates() {
   }
 
   async function handlePostToFacebook() {
-    if (!editableContent) return;
-    const templateId = generating !== null ? generating : selectedTemplateId;
-    const template = templates.find(t => t.id === templateId);
+    if (!editableContent || !generatedFromTemplateId) return;
+    const template = templates.find(t => t.id === generatedFromTemplateId);
 
     if (!template) {
       setError('No template found for the generated content');
@@ -231,6 +231,7 @@ export default function Templates() {
     try {
       const result: GenerateResponse = await generateContent({ templateId, context });
       setEditableContent(result.content);
+      setGeneratedFromTemplateId(templateId);
       setPostResult(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate content');
@@ -419,7 +420,7 @@ export default function Templates() {
             >
               {postingToFacebook ? 'Posting...' : 'Post to Facebook'}
             </Button>
-            <Button onClick={() => { setEditableContent(null); setPostResult(null); }}>
+            <Button onClick={() => { setEditableContent(null); setGeneratedFromTemplateId(null); setPostResult(null); }}>
               Discard
             </Button>
           </Flex>

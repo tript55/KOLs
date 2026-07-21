@@ -9,7 +9,7 @@ import type { GenerateContentResponse } from "../types/index.js";
  * that get replaced with values from the context map.
  *
  * Auto-injected context variables (finance agent enrichment):
- * - {{market_data}}: Live crypto market data from CoinGecko
+ * - {{market_data}}: Live crypto market data from Binance
  * - {{date}}: Current date/time in Vietnamese
  */
 export async function generateContent(

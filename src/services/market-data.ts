@@ -1,18 +1,15 @@
 /**
- * Market data service — fetches live crypto prices from CoinGecko free API.
+ * Market data service — fetches live crypto prices from Binance public API.
  * Used as a "finance agent" to enrich content generation context with real-time data.
  */
 
-interface CoinMarketData {
-  id: string;
+interface BinanceTicker {
   symbol: string;
-  name: string;
-  current_price: number;
-  price_change_percentage_24h: number | null;
-  market_cap: number;
-  total_volume: number;
-  high_24h: number;
-  low_24h: number;
+  priceChange: string;
+  priceChangePercent: string;
+  lastPrice: string;
+  volume: string;
+  quoteVolume: string;
 }
 
 interface MarketSummary {
@@ -27,62 +24,69 @@ interface MarketSummary {
   fetchedAt: string;
 }
 
-const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
+const BINANCE_BASE = "https://api.binance.com/api/v3";
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 let cachedSummary: MarketSummary | null = null;
 let cacheTimestamp = 0;
 
 /**
- * Fetch top coins by market cap from CoinGecko.
+ * Fetch all USDT trading pairs from Binance.
  */
-async function fetchTopCoins(limit = 20): Promise<CoinMarketData[]> {
-  const url = `${COINGECKO_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false&price_change_percentage=24h`;
+async function fetchAllTickers(): Promise<BinanceTicker[]> {
+  const url = `${BINANCE_BASE}/ticker/24hr`;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
-    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`);
+    throw new Error(`Binance API error: ${res.status} ${res.statusText}`);
   }
 
-  return (await res.json()) as CoinMarketData[];
+  const allTickers = (await res.json()) as BinanceTicker[];
+  return allTickers.filter((t) => t.symbol.endsWith("USDT"));
 }
 
 /**
- * Build a structured market summary from raw coin data.
+ * Build a structured market summary from raw ticker data.
  */
-function buildSummary(coins: CoinMarketData[]): MarketSummary {
-  const btc = coins.find((c) => c.id === "bitcoin");
-  const eth = coins.find((c) => c.id === "ethereum");
+function buildSummary(tickers: BinanceTicker[]): MarketSummary {
+  const btc = tickers.find((t) => t.symbol === "BTCUSDT");
+  const eth = tickers.find((t) => t.symbol === "ETHUSDT");
 
-  const sorted = [...coins].filter((c) => c.price_change_percentage_24h != null);
+  const parsed = tickers
+    .map((t) => ({
+      symbol: t.symbol.replace("USDT", ""),
+      price: parseFloat(t.lastPrice),
+      change: parseFloat(t.priceChangePercent),
+      volume: parseFloat(t.quoteVolume),
+    }))
+    .filter((t) => !isNaN(t.change) && t.price > 0);
 
-  const gainers = [...sorted].sort((a, b) => (b.price_change_percentage_24h ?? 0) - (a.price_change_percentage_24h ?? 0));
-  const losers = [...sorted].sort((a, b) => (a.price_change_percentage_24h ?? 0) - (b.price_change_percentage_24h ?? 0));
+  const gainers = [...parsed].sort((a, b) => b.change - a.change);
+  const losers = [...parsed].sort((a, b) => a.change - b.change);
 
-  const totalMarketCap = coins.reduce((sum, c) => sum + (c.market_cap || 0), 0);
-  const totalVolume = coins.reduce((sum, c) => sum + (c.total_volume || 0), 0);
+  const totalVolume = parsed.reduce((sum, t) => sum + t.volume, 0);
 
   return {
-    btcPrice: btc?.current_price ?? 0,
-    btcChange24h: btc?.price_change_percentage_24h ?? 0,
-    ethPrice: eth?.current_price ?? 0,
-    ethChange24h: eth?.price_change_percentage_24h ?? 0,
-    topGainers: gainers.slice(0, 3).map((c) => ({
-      name: c.name,
-      symbol: c.symbol.toUpperCase(),
-      price: c.current_price,
-      change: c.price_change_percentage_24h ?? 0,
+    btcPrice: btc ? parseFloat(btc.lastPrice) : 0,
+    btcChange24h: btc ? parseFloat(btc.priceChangePercent) : 0,
+    ethPrice: eth ? parseFloat(eth.lastPrice) : 0,
+    ethChange24h: eth ? parseFloat(eth.priceChangePercent) : 0,
+    topGainers: gainers.slice(0, 3).map((t) => ({
+      name: t.symbol,
+      symbol: t.symbol,
+      price: t.price,
+      change: t.change,
     })),
-    topLosers: losers.slice(0, 3).map((c) => ({
-      name: c.name,
-      symbol: c.symbol.toUpperCase(),
-      price: c.current_price,
-      change: c.price_change_percentage_24h ?? 0,
+    topLosers: losers.slice(0, 3).map((t) => ({
+      name: t.symbol,
+      symbol: t.symbol,
+      price: t.price,
+      change: t.change,
     })),
-    totalMarketCap,
+    totalMarketCap: 0, // Binance doesn't provide market cap data
     totalVolume,
     fetchedAt: new Date().toISOString(),
   };
@@ -117,8 +121,8 @@ export async function getMarketSummary(): Promise<MarketSummary> {
     return cachedSummary;
   }
 
-  const coins = await fetchTopCoins();
-  cachedSummary = buildSummary(coins);
+  const tickers = await fetchAllTickers();
+  cachedSummary = buildSummary(tickers);
   cacheTimestamp = now;
   return cachedSummary;
 }

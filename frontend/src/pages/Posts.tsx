@@ -17,11 +17,12 @@ import {
   Select,
   Space,
   Spin,
+  Table,
+  Tag,
   Typography,
 } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import DataTable from '../components/DataTable';
-import StatusBadge from '../components/StatusBadge';
 import {
   getPosts,
   getPersonas,
@@ -45,6 +46,14 @@ const ALL_STATUSES: PostStatus[] = [
   'failed',
 ];
 const ALL_PLATFORMS: Platform[] = ['facebook', 'twitter', 'telegram'];
+
+const statusTagColor: Record<PostStatus, string> = {
+  draft: 'default',
+  scheduled: 'blue',
+  generating: 'orange',
+  posted: 'green',
+  failed: 'red',
+};
 
 export default function Posts() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -325,7 +334,7 @@ export default function Posts() {
       <Table<Post>
         columns={columns}
         dataSource={filtered}
-        rowKey={(post) => String(post.id)}
+        rowKey={(post: Post) => String(post.id)}
         pagination={{ pageSize: 10, showSizeChanger: true }}
         locale={{ emptyText: 'No posts found' }}
       />

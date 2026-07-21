@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.2",
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.110.7",
+    "antd": "^6.5.1",
     "date-fns": "^4.4.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

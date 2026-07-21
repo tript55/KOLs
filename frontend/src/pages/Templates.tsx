@@ -1,10 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PlusIcon, SparklesIcon, LightBulbIcon } from '@heroicons/react/24/outline';
-import DataTable from '../components/DataTable';
-import Modal from '../components/Modal';
+import { PlusOutlined, ThunderboltOutlined, BulbOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Flex,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Spin,
+  Table,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { getTemplates, getPersonas, createTemplate, generateContent, suggestConcept } from '../lib/api';
 import type { Template, TemplateType, Platform, Persona, CreateTemplateRequest, GenerateResponse } from '../types';
 import { useAuth } from '../context/AuthContext';
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const ALL_TYPES: TemplateType[] = ['market_update', 'news_commentary', 'educational', 'meme', 'alpha_call', 'engagement'];
 const ALL_PLATFORMS: Platform[] = ['facebook', 'twitter', 'telegram'];
@@ -69,8 +84,7 @@ export default function Templates() {
     setFormHashtags('');
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate() {
     setSaving(true);
     try {
       const hashtags = formHashtags
@@ -155,270 +169,269 @@ export default function Templates() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-ink-2">Loading templates...</p>
-      </div>
+      <Flex justify="center" align="center" style={{ minHeight: 256 }}>
+        <Spin tip="Loading templates..." />
+      </Flex>
     );
   }
 
+  const columns: ColumnsType<Template> = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 60,
+      render: (id: number) => String(id),
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type: TemplateType) => formatLabel(type),
+    },
+    {
+      title: 'Platform',
+      dataIndex: 'platform',
+      key: 'platform',
+      render: (platform: string) => <span className="capitalize">{platform}</span>,
+    },
+    {
+      title: 'Persona',
+      dataIndex: 'personaId',
+      key: 'personaId',
+      render: (personaId: number) => getPersonaName(personaId),
+    },
+    {
+      title: 'Max Tokens',
+      dataIndex: 'maxTokens',
+      key: 'maxTokens',
+      render: (maxTokens: number) => String(maxTokens),
+    },
+    {
+      title: 'Temperature',
+      dataIndex: 'temperature',
+      key: 'temperature',
+      render: (temperature: number) => String(temperature),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (createdAt: string) => new Date(createdAt).toLocaleString(),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: unknown, template: Template) => (
+        <Button
+          type="dashed"
+          size="small"
+          icon={<ThunderboltOutlined />}
+          loading={generating === template.id}
+          onClick={() => handleGenerate(template.id)}
+        >
+          {generating === template.id ? 'Generating...' : 'Generate'}
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-ink-1">Templates</h2>
+    <Flex vertical gap={24}>
+      <Flex justify="space-between" align="center">
+        <Title level={3} className="!mb-0">
+          Templates
+        </Title>
         {role === 'admin' && (
-          <button
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-          >
-            <PlusIcon className="w-4 h-4" />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
             Create Template
-          </button>
+          </Button>
         )}
-      </div>
+      </Flex>
 
       {error && (
-        <div className="bg-red-50 rounded-xl border border-red-200 p-4 text-sm text-red-600">
-          {error}
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          closable
+          onClose={() => setError(null)}
+          showIcon
+        />
       )}
 
-      <DataTable
-        columns={[
-          { key: 'id', header: 'ID', render: (template: Template) => String(template.id) },
-          { key: 'name', header: 'Name', render: (template: Template) => template.name },
-          {
-            key: 'type',
-            header: 'Type',
-            render: (template: Template) => formatLabel(template.type),
-          },
-          {
-            key: 'platform',
-            header: 'Platform',
-            render: (template: Template) => <span className="capitalize">{template.platform}</span>,
-          },
-          {
-            key: 'personaId',
-            header: 'Persona',
-            render: (template: Template) => getPersonaName(template.personaId),
-          },
-          {
-            key: 'maxTokens',
-            header: 'Max Tokens',
-            render: (template: Template) => String(template.maxTokens),
-          },
-          {
-            key: 'temperature',
-            header: 'Temperature',
-            render: (template: Template) => String(template.temperature),
-          },
-          {
-            key: 'createdAt',
-            header: 'Created',
-            render: (template: Template) => new Date(template.createdAt).toLocaleString(),
-          },
-          {
-            key: 'actions',
-            header: 'Actions',
-            render: (template: Template) => (
-              <button
-                onClick={() => handleGenerate(template.id)}
-                disabled={generating === template.id}
-                className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50 transition-colors"
-              >
-                <SparklesIcon className="w-3 h-3" />
-                {generating === template.id ? 'Generating...' : 'Generate'}
-              </button>
-            ),
-          },
-        ]}
-        data={templates}
-        keyExtractor={(template) => String(template.id)}
-        emptyMessage="No templates found"
+      <Table<Template>
+        columns={columns}
+        dataSource={templates}
+        rowKey={(template) => String(template.id)}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
+        locale={{ emptyText: 'No templates found' }}
       />
 
       {generatedContent && (
-        <div className="bg-green-50 rounded-xl border border-green-200 p-4 text-sm text-green-800 whitespace-pre-wrap">
-          {generatedContent}
-        </div>
+        <Alert
+          type="success"
+          message={generatedContent}
+          style={{ whiteSpace: 'pre-wrap' }}
+        />
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Create Template">
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Name</label>
-            <input
-              type="text"
+      {/* Create Template Modal */}
+      <Modal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        title="Create Template"
+        footer={null}
+        destroyOnClose
+      >
+        <Form layout="vertical" onFinish={handleCreate}>
+          <Form.Item label="Name" required>
+            <Input
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Type</label>
-            <select
+          </Form.Item>
+          <Form.Item label="Type">
+            <Select
               value={formType}
-              onChange={(e) => setFormType(e.target.value as TemplateType)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              {ALL_TYPES.map((t) => (
-                <option key={t} value={t}>{formatLabel(t)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Platform</label>
-            <select
+              onChange={setFormType}
+              options={ALL_TYPES.map((t) => ({ label: formatLabel(t), value: t }))}
+            />
+          </Form.Item>
+          <Form.Item label="Platform">
+            <Select
               value={formPlatform}
-              onChange={(e) => setFormPlatform(e.target.value as Platform)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              {ALL_PLATFORMS.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Persona</label>
-            <select
-              value={formPersonaId}
-              onChange={(e) => setFormPersonaId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Select persona...</option>
-              {personas.map((p) => (
-                <option key={p.id} value={p.id}>{p.displayName}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">System Prompt</label>
-            <textarea
+              onChange={setFormPlatform}
+              options={ALL_PLATFORMS.map((p) => ({ label: p, value: p }))}
+            />
+          </Form.Item>
+          <Form.Item label="Persona">
+            <Select
+              value={formPersonaId || undefined}
+              onChange={setFormPersonaId}
+              placeholder="Select persona..."
+              options={personas.map((p) => ({
+                label: p.displayName,
+                value: String(p.id),
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="System Prompt" required>
+            <TextArea
               value={formSystemPrompt}
               onChange={(e) => setFormSystemPrompt(e.target.value)}
-              required
               rows={6}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">User Prompt Template</label>
-            <textarea
+          </Form.Item>
+          <Form.Item label="User Prompt Template" required>
+            <TextArea
               value={formUserPromptTemplate}
               onChange={(e) => setFormUserPromptTemplate(e.target.value)}
-              required
               rows={4}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="Use {{variable}} placeholders, e.g. Write about {{topic}} for {{coin}}"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Max Tokens</label>
-            <input
-              type="number"
+          </Form.Item>
+          <Form.Item label="Max Tokens">
+            <InputNumber
               value={formMaxTokens}
-              onChange={(e) => setFormMaxTokens(Number(e.target.value))}
+              onChange={(val) => setFormMaxTokens(val ?? 50000)}
               min={50}
               max={4000}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              style={{ width: '100%' }}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Temperature</label>
-            <input
-              type="number"
+          </Form.Item>
+          <Form.Item label="Temperature">
+            <InputNumber
               value={formTemperature}
-              onChange={(e) => setFormTemperature(Number(e.target.value))}
+              onChange={(val) => setFormTemperature(val ?? 0.8)}
               step={0.1}
               min={0}
               max={2}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              style={{ width: '100%' }}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Hashtags</label>
-            <input
-              type="text"
+          </Form.Item>
+          <Form.Item label="Hashtags">
+            <Input
               value={formHashtags}
               onChange={(e) => setFormHashtags(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="Comma-separated, e.g. crypto, bitcoin, defi"
             />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !formPersonaId || !formName || !formSystemPrompt || !formUserPromptTemplate}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          </Form.Item>
+          <Flex justify="flex-end" gap={12}>
+            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={saving}
+              disabled={!formPersonaId || !formName || !formSystemPrompt || !formUserPromptTemplate}
             >
               {saving ? 'Creating...' : 'Create Template'}
-            </button>
-          </div>
-        </form>
+            </Button>
+          </Flex>
+        </Form>
       </Modal>
 
-      <Modal 
-        open={generateModalOpen} 
-        onClose={() => {
+      {/* Generate Educational Content Modal */}
+      <Modal
+        open={generateModalOpen}
+        onCancel={() => {
           setGenerateModalOpen(false);
           setSelectedTemplateId(null);
           setConceptInput('');
-        }} 
+        }}
         title="Generate Educational Content"
+        footer={null}
+        destroyOnClose
       >
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-ink-1">
-                Concept to explain
-              </label>
-              <button
-                type="button"
+        <Form layout="vertical">
+          <Form.Item label="Concept to explain">
+            <Flex justify="space-between" align="center" className="!mb-1">
+              <Text type="secondary" className="!text-xs">
+                Enter the crypto concept you want to explain
+              </Text>
+              <Button
+                type="primary"
+                size="small"
+                ghost
+                icon={<BulbOutlined />}
+                loading={suggestingConcept}
                 onClick={handleSuggestConcept}
-                disabled={suggestingConcept}
-                className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 text-xs font-medium text-white hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 transition-all"
               >
-                <LightBulbIcon className="w-3.5 h-3.5" />
                 {suggestingConcept ? 'Đang gợi ý...' : 'AI Gợi ý'}
-              </button>
-            </div>
-            <textarea
+              </Button>
+            </Flex>
+            <TextArea
               value={conceptInput}
               onChange={(e) => setConceptInput(e.target.value)}
               placeholder="Enter the crypto concept you want to explain (e.g., 'DeFi là gì?', 'Staking hoạt động như thế nào?')"
               rows={4}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
+          </Form.Item>
+          <Flex justify="flex-end" gap={12}>
+            <Button
               onClick={() => {
                 setGenerateModalOpen(false);
                 setSelectedTemplateId(null);
                 setConceptInput('');
               }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              type="primary"
               onClick={handleGenerateWithConcept}
               disabled={!conceptInput.trim() || generating !== null}
-              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              loading={generating !== null}
             >
               {generating !== null ? 'Generating...' : 'Generate'}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Flex>
+        </Form>
       </Modal>
-    </div>
+    </Flex>
   );
 }

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
-  DocumentTextIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  FireIcon,
-} from '@heroicons/react/24/outline';
+  FileTextOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  WarningOutlined,
+  FireOutlined,
+} from '@ant-design/icons';
 import {
   BarChart,
   Bar,
@@ -15,11 +15,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { Alert, Card, Flex, Spin, Typography } from 'antd';
 import StatsCard from '../components/StatsCard';
 import StatusBadge from '../components/StatusBadge';
 import DataTable from '../components/DataTable';
 import { getDashboardStats, getPosts } from '../lib/api';
 import type { DashboardStats, Post } from '../types';
+
+const { Title, Text } = Typography;
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -51,20 +54,19 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-accent-subtle border-t-accent rounded-full animate-spin" />
-          <p className="text-ink-2 font-medium animate-pulse">Gathering data...</p>
-        </div>
-      </div>
+      <Flex justify="center" align="center" style={{ minHeight: 256 }}>
+        <Spin size="large" tip="Gathering data..." />
+      </Flex>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="bg-accent-subtle rounded-3xl border border-accent/20 p-8 text-center text-accent font-medium shadow-sm">
-        {error ?? 'Failed to load dashboard data'}
-      </div>
+      <Alert
+        type="error"
+        message={error ?? 'Failed to load dashboard data'}
+        showIcon
+      />
     );
   }
 
@@ -73,44 +75,48 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-10">
-      <header className="flex justify-between items-end">
+    <Flex vertical gap={40}>
+      <Flex justify="space-between" align="flex-end">
         <div>
-          <h2 className="text-4xl font-extrabold font-display text-ink-1 mb-2">Overview</h2>
-          <p className="text-ink-2 text-lg">Here's what's happening with your content today.</p>
+          <Title level={2} className="!mb-1 !font-display !font-extrabold">
+            Overview
+          </Title>
+          <Text type="secondary" className="!text-lg">
+            Here's what's happening with your content today.
+          </Text>
         </div>
-      </header>
+      </Flex>
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
         <StatsCard
           label="Total Posts"
           value={stats.totalPosts}
-          icon={<DocumentTextIcon className="w-7 h-7" />}
+          icon={<FileTextOutlined style={{ fontSize: 28 }} />}
           color="text-brand-info bg-brand-info-subtle"
         />
         <StatsCard
           label="Posted"
           value={stats.postsByStatus.posted ?? 0}
-          icon={<CheckCircleIcon className="w-7 h-7" />}
+          icon={<CheckCircleOutlined style={{ fontSize: 28 }} />}
           color="text-brand-success bg-brand-success-subtle"
         />
         <StatsCard
           label="Scheduled"
           value={stats.postsByStatus.scheduled ?? 0}
-          icon={<ClockIcon className="w-7 h-7" />}
+          icon={<ClockCircleOutlined style={{ fontSize: 28 }} />}
           color="text-brand-warning bg-brand-warning-subtle"
         />
         <StatsCard
           label="Failed"
           value={stats.postsByStatus.failed ?? 0}
-          icon={<ExclamationTriangleIcon className="w-7 h-7" />}
+          icon={<WarningOutlined style={{ fontSize: 28 }} />}
           color="text-accent bg-accent-subtle"
         />
         <StatsCard
           label="Engagement"
           value={stats.totalEngagement.toLocaleString()}
-          icon={<FireIcon className="w-7 h-7" />}
+          icon={<FireOutlined style={{ fontSize: 28 }} />}
           color="text-brand-warning bg-brand-warning-subtle"
         />
       </div>
@@ -118,9 +124,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Engagement chart */}
         {engagementData.length > 0 && (
-          <div className="xl:col-span-2 bg-paper-2 rounded-[2rem] border border-border p-8 shadow-sm">
-            <h3 className="text-xl font-bold font-display text-ink-1 mb-6">Engagement Breakdown</h3>
-            <div className="h-72">
+          <Card
+            className="xl:col-span-2"
+            title={
+              <Title level={4} className="!mb-0 !font-display">
+                Engagement Breakdown
+              </Title>
+            }
+          >
+            <div style={{ height: 288 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={engagementData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
@@ -134,37 +146,41 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Recent posts */}
-        <div className="xl:col-span-1 bg-paper-2 rounded-[2rem] border border-border p-8 shadow-sm flex flex-col">
-          <h3 className="text-xl font-bold font-display text-ink-1 mb-6">Recent Activity</h3>
-          <div className="flex-1">
-            <DataTable
-              columns={[
-                {
-                  key: 'content',
-                  header: 'Content',
-                  render: (post: Post) => (
-                    <span className="block max-w-[180px] truncate text-ink-1 font-medium">
-                      {post.content ?? '\u2014'}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'status',
-                  header: 'Status',
-                  render: (post: Post) => <StatusBadge status={post.status} />,
-                },
-              ]}
-              data={recentPosts.slice(0, 5)}
-              keyExtractor={(post) => String(post.id)}
-              emptyMessage="No posts yet"
-            />
-          </div>
-        </div>
+        <Card
+          className="xl:col-span-1"
+          title={
+            <Title level={4} className="!mb-0 !font-display">
+              Recent Activity
+            </Title>
+          }
+        >
+          <DataTable<Post>
+            columns={[
+              {
+                key: 'content',
+                header: 'Content',
+                render: (post: Post) => (
+                  <Text strong className="!block !max-w-[180px] !truncate">
+                    {post.content ?? '\u2014'}
+                  </Text>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                render: (post: Post) => <StatusBadge status={post.status} />,
+              },
+            ]}
+            data={recentPosts.slice(0, 5)}
+            keyExtractor={(post) => String(post.id)}
+            emptyMessage="No posts yet"
+          />
+        </Card>
       </div>
-    </div>
+    </Flex>
   );
 }

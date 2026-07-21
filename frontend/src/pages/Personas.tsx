@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import DataTable from '../components/DataTable';
-import Modal from '../components/Modal';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Flex,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Spin,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { getPersonas, createPersona, updatePersona, deletePersona } from '../lib/api';
 import type { Persona, ToneOfVoice, Platform } from '../types';
 import { useAuth } from '../context/AuthContext';
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const ALL_TONES: ToneOfVoice[] = ['professional', 'casual', 'humorous', 'educational', 'aggressive'];
 const ALL_PLATFORMS: Platform[] = ['facebook', 'twitter', 'telegram'];
@@ -41,14 +57,6 @@ export default function Personas() {
     load();
   }, [load]);
 
-  function togglePlatform(platform: Platform) {
-    setFormTargetPlatforms((prev) =>
-      prev.includes(platform)
-        ? prev.filter((p) => p !== platform)
-        : [...prev, platform]
-    );
-  }
-
   function handleEdit(persona: Persona) {
     setEditingPersonaId(persona.id);
     setFormName(persona.name);
@@ -74,17 +82,24 @@ export default function Personas() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('Are you sure you want to delete this persona?')) return;
-    try {
-      await deletePersona(id);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete persona');
-    }
+    Modal.confirm({
+      title: 'Delete Persona',
+      content: 'Are you sure you want to delete this persona?',
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await deletePersona(id);
+          await load();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to delete persona');
+        }
+      },
+    });
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate() {
     if (!formName || !formDisplayName || !formBio) return;
     setSaving(true);
     try {
@@ -115,199 +130,196 @@ export default function Personas() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-ink-2">Loading personas...</p>
-      </div>
+      <Flex justify="center" align="center" style={{ minHeight: 256 }}>
+        <Spin tip="Loading personas..." />
+      </Flex>
     );
   }
 
+  const columns: ColumnsType<Persona> = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 60,
+      render: (id: number) => String(id),
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Display Name',
+      dataIndex: 'displayName',
+      key: 'displayName',
+    },
+    {
+      title: 'Tone',
+      dataIndex: 'toneOfVoice',
+      key: 'toneOfVoice',
+      render: (tone: ToneOfVoice) => (
+        <Tag color="purple" className="!capitalize">
+          {tone}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Platforms',
+      dataIndex: 'targetPlatforms',
+      key: 'targetPlatforms',
+      render: (platforms: Platform[]) => (
+        <Text>{platforms.join(', ')}</Text>
+      ),
+    },
+    {
+      title: 'Expertise',
+      dataIndex: 'expertise',
+      key: 'expertise',
+      ellipsis: true,
+      render: (expertise: string[]) => (
+        <Text className="!block !max-w-xs !truncate">
+          {expertise.join(', ') || '\u2014'}
+        </Text>
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (createdAt: string) => new Date(createdAt).toLocaleString(),
+    },
+  ];
+
+  if (role === 'admin') {
+    columns.push({
+      title: 'Actions',
+      key: 'actions',
+      align: 'right',
+      render: (_: unknown, persona: Persona) => (
+        <Flex gap={8} justify="flex-end">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(persona)}
+            title="Edit"
+          />
+          <Button
+            type="text"
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(persona.id)}
+            title="Delete"
+          />
+        </Flex>
+      ),
+    });
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-ink-1">Personas</h2>
+    <Flex vertical gap={24}>
+      <Flex justify="space-between" align="center">
+        <Title level={3} className="!mb-0">
+          Personas
+        </Title>
         {role === 'admin' && (
-          <button
-            onClick={handleCreateNew}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-          >
-            <PlusIcon className="w-4 h-4" />
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>
             Create Persona
-          </button>
+          </Button>
         )}
-      </div>
+      </Flex>
 
       {error && (
-        <div className="bg-red-50 rounded-xl border border-red-200 p-4 text-sm text-red-600">
-          {error}
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          closable
+          onClose={() => setError(null)}
+          showIcon
+        />
       )}
 
-      <DataTable
-        columns={[
-          { key: 'id', header: 'ID', render: (persona: Persona) => String(persona.id) },
-          { key: 'name', header: 'Name', render: (persona: Persona) => persona.name },
-          { key: 'displayName', header: 'Display Name', render: (persona: Persona) => persona.displayName },
-          {
-            key: 'toneOfVoice',
-            header: 'Tone',
-            render: (persona: Persona) => (
-              <span className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700 capitalize">
-                {persona.toneOfVoice}
-              </span>
-            ),
-          },
-          {
-            key: 'targetPlatforms',
-            header: 'Platforms',
-            render: (persona: Persona) => (
-              <span className="text-ink-1">
-                {persona.targetPlatforms.join(', ')}
-              </span>
-            ),
-          },
-          {
-            key: 'expertise',
-            header: 'Expertise',
-            render: (persona: Persona) => (
-              <span className="block max-w-xs truncate text-ink-1">
-                {persona.expertise.join(', ') || '\u2014'}
-              </span>
-            ),
-          },
-          {
-            key: 'createdAt',
-            header: 'Created',
-            render: (persona: Persona) => new Date(persona.createdAt).toLocaleString(),
-          },
-          ...(role === 'admin' ? [{
-            key: 'actions',
-            header: 'Actions',
-            render: (persona: Persona) => (
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => handleEdit(persona)}
-                  className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
-                  title="Edit"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(persona.id)}
-                  className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
-                  title="Delete"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            ),
-          }] : []),
-        ]}
-        data={personas}
-        keyExtractor={(persona) => String(persona.id)}
-        emptyMessage="No personas found"
+      <Table<Persona>
+        columns={columns}
+        dataSource={personas}
+        rowKey={(persona) => String(persona.id)}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
+        locale={{ emptyText: 'No personas found' }}
       />
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingPersonaId ? "Edit Persona" : "Create Persona"}>
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Name</label>
-            <input
-              type="text"
+      <Modal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        title={editingPersonaId ? 'Edit Persona' : 'Create Persona'}
+        footer={null}
+        destroyOnClose
+      >
+        <Form layout="vertical" onFinish={handleCreate}>
+          <Form.Item label="Name" required>
+            <Input
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. crypto_minh"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Display Name</label>
-            <input
-              type="text"
+          </Form.Item>
+          <Form.Item label="Display Name" required>
+            <Input
               value={formDisplayName}
               onChange={(e) => setFormDisplayName(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. Crypto Minh"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Bio</label>
-            <textarea
+          </Form.Item>
+          <Form.Item label="Bio" required>
+            <TextArea
               value={formBio}
               onChange={(e) => setFormBio(e.target.value)}
-              required
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="Describe this persona..."
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Expertise (comma-separated)</label>
-            <input
-              type="text"
+          </Form.Item>
+          <Form.Item label="Expertise (comma-separated)">
+            <Input
               value={formExpertise}
               onChange={(e) => setFormExpertise(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. DeFi, NFT, Bitcoin"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Tone of Voice</label>
-            <select
+          </Form.Item>
+          <Form.Item label="Tone of Voice">
+            <Select
               value={formToneOfVoice}
-              onChange={(e) => setFormToneOfVoice(e.target.value as ToneOfVoice)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              {ALL_TONES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Target Platforms</label>
-            <div className="flex gap-4">
-              {ALL_PLATFORMS.map((platform) => (
-                <label key={platform} className="inline-flex items-center gap-2 text-sm text-ink-1">
-                  <input
-                    type="checkbox"
-                    checked={formTargetPlatforms.includes(platform)}
-                    onChange={() => togglePlatform(platform)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="capitalize">{platform}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">Avatar URL (optional)</label>
-            <input
-              type="text"
+              onChange={setFormToneOfVoice}
+              options={ALL_TONES.map((t) => ({ label: t, value: t }))}
+            />
+          </Form.Item>
+          <Form.Item label="Target Platforms">
+            <Checkbox.Group
+              value={formTargetPlatforms}
+              onChange={(vals) => setFormTargetPlatforms(vals as Platform[])}
+              options={ALL_PLATFORMS.map((p) => ({ label: p, value: p }))}
+            />
+          </Form.Item>
+          <Form.Item label="Avatar URL (optional)">
+            <Input
               value={formAvatarUrl}
               onChange={(e) => setFormAvatarUrl(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="https://..."
             />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
+          </Form.Item>
+          <Flex justify="flex-end" gap={12}>
+            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={saving}
+              disabled={!formName || !formDisplayName || !formBio}
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !formName || !formDisplayName || !formBio}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {saving ? 'Saving...' : (editingPersonaId ? 'Save Changes' : 'Create Persona')}
-            </button>
-          </div>
-        </form>
+              {saving ? 'Saving...' : editingPersonaId ? 'Save Changes' : 'Create Persona'}
+            </Button>
+          </Flex>
+        </Form>
       </Modal>
-    </div>
+    </Flex>
   );
 }

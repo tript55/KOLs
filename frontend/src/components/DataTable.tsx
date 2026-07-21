@@ -1,3 +1,5 @@
+import { Table as AntTable, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import type { ReactNode } from 'react';
 
 interface Column<T> {
@@ -13,49 +15,63 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
-export default function DataTable<T>({
+const { Text } = Typography;
+
+export default function DataTable<T extends object>({
   columns,
   data,
   keyExtractor,
   emptyMessage = 'No data available',
 }: DataTableProps<T>) {
-  if (data.length === 0) {
-    return (
-      <div className="bg-paper-2 rounded-[2rem] border border-border p-8 text-center text-ink-3">
-        {emptyMessage}
-      </div>
-    );
-  }
+  // Transform our Column interface to AntD ColumnsType
+  const antColumns: ColumnsType<T> = columns.map((col) => ({
+    title: (
+      <Text
+        strong
+        style={{
+          fontSize: 12,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          color: '#4A5568',
+          fontFamily: "'Outfit', sans-serif",
+        }}
+      >
+        {col.header}
+      </Text>
+    ),
+    dataIndex: col.key,
+    key: col.key,
+    render: (_: unknown, record: T) => col.render(record),
+  }));
+
+  // Transform data to include key for AntD
+  const dataSource = data.map((item) => ({
+    ...item,
+    key: keyExtractor(item),
+  }));
 
   return (
-    <div className="bg-paper-2 rounded-[1.5rem] overflow-hidden border border-border shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-paper-1/50 border-b border-border">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className="px-6 py-4 text-left text-xs font-bold text-ink-2 uppercase tracking-wider font-display"
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {data.map((item) => (
-              <tr key={keyExtractor(item)} className="hover:bg-paper-1/30 transition-colors">
-                {columns.map((col) => (
-                  <td key={col.key} className="px-6 py-4 text-ink-1 whitespace-nowrap">
-                    {col.render(item)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <AntTable<T>
+      columns={antColumns}
+      dataSource={dataSource}
+      pagination={false}
+      size="middle"
+      locale={{
+        emptyText: (
+          <div
+            style={{
+              padding: '32px',
+              textAlign: 'center',
+            }}
+          >
+            <Text type="secondary">{emptyMessage}</Text>
+          </div>
+        ),
+      }}
+      style={{
+        borderRadius: 24,
+        overflow: 'hidden',
+      }}
+    />
   );
 }

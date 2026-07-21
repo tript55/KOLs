@@ -1,138 +1,240 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Layout as AntLayout, Menu, Avatar, Button, Typography, Drawer } from 'antd';
+import type { MenuProps } from 'antd';
 import {
-  HomeIcon,
-  DocumentTextIcon,
-  UserGroupIcon,
-  DocumentDuplicateIcon,
-  ClockIcon,
-  Bars3Icon,
-  XMarkIcon,
-  ArrowLeftOnRectangleIcon,
-} from '@heroicons/react/24/outline';
+  HomeOutlined,
+  FileTextOutlined,
+  TeamOutlined,
+  CopyOutlined,
+  ClockCircleOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+} from '@ant-design/icons';
 import ServerStatusWidget from './ServerStatusWidget';
 import { useAuth } from '../context/AuthContext';
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: HomeIcon },
-  { to: '/posts', label: 'Posts', icon: DocumentTextIcon },
-  { to: '/personas', label: 'Personas', icon: UserGroupIcon },
-  { to: '/templates', label: 'Templates', icon: DocumentDuplicateIcon },
-  { to: '/scheduler', label: 'Scheduler', icon: ClockIcon },
-] as const;
+const { Sider, Content } = AntLayout;
+const { Text } = Typography;
+
+type MenuItem = Required<MenuProps>['items'][number];
+
+const navItems: MenuItem[] = [
+  { key: '/', icon: <HomeOutlined />, label: <NavLink to="/" end style={{ color: 'inherit', textDecoration: 'none' }}>Dashboard</NavLink> },
+  { key: '/posts', icon: <FileTextOutlined />, label: <NavLink to="/posts" style={{ color: 'inherit', textDecoration: 'none' }}>Posts</NavLink> },
+  { key: '/personas', icon: <TeamOutlined />, label: <NavLink to="/personas" style={{ color: 'inherit', textDecoration: 'none' }}>Personas</NavLink> },
+  { key: '/templates', icon: <CopyOutlined />, label: <NavLink to="/templates" style={{ color: 'inherit', textDecoration: 'none' }}>Templates</NavLink> },
+  { key: '/scheduler', icon: <ClockCircleOutlined />, label: <NavLink to="/scheduler" style={{ color: 'inherit', textDecoration: 'none' }}>Scheduler</NavLink> },
+];
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, role, signOut } = useAuth();
+  const location = useLocation();
 
-  return (
-    <div className="flex h-screen bg-paper-1 overflow-hidden font-body">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-ink-1/40 backdrop-blur-sm lg:hidden transition-opacity"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+  const menuItems = (
+    <Menu
+      mode="inline"
+      selectedKeys={[location.pathname]}
+      items={navItems}
+      onClick={() => setSidebarOpen(false)}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        padding: '8px 0',
+      }}
+    />
+  );
 
-      {/* Floating Sidebar (Desktop) / Slide-in (Mobile) */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-bounce lg:translate-x-0 lg:static lg:inset-auto p-4 lg:p-6 flex flex-col ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+  const sidebarContent = (
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#FFFFFF',
+        borderRadius: 24,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Logo */}
+      <div style={{ padding: '24px 24px 16px' }}>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            fontFamily: "'Outfit', sans-serif",
+            color: '#FF5A5F',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Crypto<span style={{ color: '#2D3748' }}>KOL</span>
+        </Text>
+      </div>
+
+      {/* Nav Menu */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+        {menuItems}
+      </div>
+
+      {/* Server Status Widget */}
+      <ServerStatusWidget />
+
+      {/* User Profile + Logout */}
+      <div
+        style={{
+          padding: '16px 20px',
+          borderTop: '1px solid #FFEDD5',
+          background: 'rgba(255, 247, 235, 0.5)',
+        }}
       >
-        <div className="bg-paper-2 h-full w-full rounded-[2rem] shadow-sm border border-border flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-6 lg:p-8">
-            <h1 className="text-2xl font-bold font-display text-accent tracking-tight">
-              Crypto<span className="text-ink-1">KOL</span>
-            </h1>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-ink-3 hover:text-accent lg:hidden transition-colors bg-accent-subtle p-2 rounded-full"
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <Avatar
+            size={32}
+            style={{
+              background: '#FF5A5F',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: 13,
+              flexShrink: 0,
+            }}
+          >
+            {user?.email?.[0]?.toUpperCase() || 'U'}
+          </Avatar>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <Text
+              strong
+              ellipsis
+              style={{
+                display: 'block',
+                fontSize: 13,
+                color: '#2D3748',
+              }}
             >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          </div>
-
-          <nav className="flex-1 px-4 lg:px-6 space-y-2 overflow-y-auto pb-6">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-accent text-white shadow-md shadow-accent/20 translate-x-1'
-                      : 'text-ink-2 hover:bg-accent-subtle hover:text-accent hover:translate-x-1'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon className="w-6 h-6 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
-                    {item.label}
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-
-          <ServerStatusWidget />
-
-          {/* User Profile / Logout */}
-          <div className="p-4 lg:p-6 border-t border-border mt-auto shrink-0 bg-paper-1/50">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 px-2">
-                <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm shrink-0">
-                  {user?.email?.[0].toUpperCase() || 'U'}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-ink-1 truncate">
-                    {user?.email || 'User'}
-                  </span>
-                  <span className="text-xs text-ink-3 capitalize">
-                    {role || 'viewer'}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={signOut}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full"
-              >
-                <ArrowLeftOnRectangleIcon className="w-5 h-5 shrink-0" />
-                Sign Out
-              </button>
-            </div>
+              {user?.email || 'User'}
+            </Text>
+            <Text
+              type="secondary"
+              style={{ fontSize: 11, textTransform: 'capitalize' }}
+            >
+              {role || 'viewer'}
+            </Text>
           </div>
         </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Mobile Top bar */}
-        <header className="h-20 lg:hidden flex items-center px-6 shrink-0 z-30">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-ink-1 hover:text-accent bg-paper-2 p-3 rounded-2xl shadow-sm border border-border transition-colors"
-          >
-            <Bars3Icon className="w-6 h-6" />
-          </button>
-          <div className="flex-1 text-center pr-12">
-            <h1 className="text-xl font-bold font-display text-accent tracking-tight">
-              Crypto<span className="text-ink-1">KOL</span>
-            </h1>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:py-6 lg:pr-6 lg:pl-0 w-full rounded-tl-3xl lg:rounded-none">
-          <div className="bg-paper-2 min-h-full rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-border p-6 lg:p-10">
-            <Outlet />
-          </div>
-        </main>
+        <Button
+          type="text"
+          danger
+          icon={<LogoutOutlined />}
+          onClick={signOut}
+          block
+          style={{
+            justifyContent: 'flex-start',
+            borderRadius: 12,
+            height: 40,
+          }}
+        >
+          Sign Out
+        </Button>
       </div>
     </div>
+  );
+
+  return (
+    <AntLayout style={{ minHeight: '100vh', background: '#FFF7EB' }}>
+      {/* Desktop Sider */}
+      <Sider
+        width={288}
+        style={{
+          background: 'transparent',
+          padding: 24,
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          overflow: 'auto',
+        }}
+        breakpoint="lg"
+        collapsedWidth={0}
+        trigger={null}
+        collapsible={false}
+      >
+        {sidebarContent}
+      </Sider>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        placement="left"
+        onClose={() => setSidebarOpen(false)}
+        open={sidebarOpen}
+        width={288}
+        styles={{
+          body: { padding: 0, background: '#FFF7EB' },
+          header: { display: 'none' },
+        }}
+        rootStyle={{ position: 'fixed', inset: 0 }}
+      >
+        {sidebarContent}
+      </Drawer>
+
+      <AntLayout style={{ background: 'transparent', flex: 1 }}>
+        {/* Mobile Top Bar */}
+        <div
+          style={{
+            height: 80,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 24px',
+            gap: 16,
+          }}
+          className="mobile-topbar"
+        >
+          <Button
+            icon={<MenuOutlined style={{ fontSize: 20 }} />}
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              borderRadius: 16,
+              border: '1px solid #FFEDD5',
+              background: '#FFFFFF',
+              width: 48,
+              height: 48,
+            }}
+          />
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              fontFamily: "'Outfit', sans-serif",
+              color: '#FF5A5F',
+              flex: 1,
+              textAlign: 'center',
+            }}
+          >
+            Crypto<span style={{ color: '#2D3748' }}>KOL</span>
+          </Text>
+          <div style={{ width: 48 }} />
+        </div>
+
+        {/* Page content */}
+        <Content
+          style={{
+            padding: '24px 24px 24px 0',
+            flex: 1,
+            overflow: 'auto',
+          }}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 40,
+              border: '1px solid #FFEDD5',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.06)',
+              padding: '40px',
+              minHeight: '100%',
+            }}
+          >
+            <Outlet />
+          </div>
+        </Content>
+      </AntLayout>
+    </AntLayout>
   );
 }

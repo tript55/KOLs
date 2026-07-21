@@ -1,17 +1,34 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  PlayIcon,
-  StopIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ArrowPathIcon,
-  SparklesIcon,
-  BoltIcon,
-} from "@heroicons/react/24/outline";
-import StatsCard from "../components/StatsCard";
-import DataTable from "../components/DataTable";
-import StatusBadge from "../components/StatusBadge";
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+  ThunderboltOutlined,
+  RocketOutlined,
+  FireOutlined,
+  CalendarOutlined,
+} from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  Card,
+  DatePicker,
+  Flex,
+  Form,
+  Input,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Typography,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
+import StatsCard from '../components/StatsCard';
 import {
   createFacebookWorkflow,
   getFacebookWorkflowStatus,
@@ -21,40 +38,45 @@ import {
   runPostWorkflow,
   startScheduler,
   stopScheduler,
-} from "../lib/api";
+} from '../lib/api';
 import type {
   Persona,
   Platform,
   Post,
+  PostStatus,
   SchedulerStatus,
   Template,
   WorkflowStatus,
-} from "../types";
+} from '../types';
 
-const FACEBOOK_PLATFORM: Platform = "facebook";
+const { Title, Text } = Typography;
+
+const FACEBOOK_PLATFORM: Platform = 'facebook';
 const QUICK_SLOT_PRESETS = [
-  { label: "Morning Pulse", value: "07:15" },
-  { label: "Lunch Explainer", value: "12:15" },
-  { label: "Evening Recap", value: "20:30" },
+  { label: 'Morning Pulse', value: '07:15' },
+  { label: 'Lunch Explainer', value: '12:15' },
+  { label: 'Evening Recap', value: '20:30' },
 ] as const;
 
-function toLocalInputValue(date: Date): string {
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60_000);
-  return local.toISOString().slice(0, 16);
-}
+const statusTagColor: Record<PostStatus, string> = {
+  draft: 'default',
+  scheduled: 'gold',
+  generating: 'processing',
+  posted: 'success',
+  failed: 'error',
+};
 
-function createPresetDate(timeValue: string): string {
-  const [hours, minutes] = timeValue.split(":").map(Number);
+function createPresetDate(timeValue: string): dayjs.Dayjs {
+  const [hours, minutes] = timeValue.split(':').map(Number);
   const candidate = new Date();
   candidate.setSeconds(0, 0);
-  candidate.setHours(hours, minutes, 0, 0);
+  candidate.setHours(hours!, minutes!, 0, 0);
 
   if (candidate.getTime() <= Date.now()) {
     candidate.setDate(candidate.getDate() + 1);
   }
 
-  return toLocalInputValue(candidate);
+  return dayjs(candidate);
 }
 
 export default function Scheduler() {
@@ -65,23 +87,16 @@ export default function Scheduler() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<
-    "start" | "stop" | "schedule" | null
-  >(null);
+  const [actionLoading, setActionLoading] = useState<'start' | 'stop' | 'schedule' | null>(null);
   const [rowActionId, setRowActionId] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState<string>("");
+  const [countdown, setCountdown] = useState<string>('');
 
-  const [formPersonaId, setFormPersonaId] = useState("");
-  const [formTemplateId, setFormTemplateId] = useState("");
-  const [formScheduledAt, setFormScheduledAt] = useState(
-    createPresetDate("07:15"),
-  );
-  const [formAudienceSegment, setFormAudienceSegment] = useState(
-    "vietnamese-investor",
-  );
-  const [formStrategyKey, setFormStrategyKey] = useState("market_update");
-  const [formTargetSlotLabel, setFormTargetSlotLabel] =
-    useState("Morning Pulse");
+  const [formPersonaId, setFormPersonaId] = useState('');
+  const [formTemplateId, setFormTemplateId] = useState('');
+  const [formScheduledAt, setFormScheduledAt] = useState<dayjs.Dayjs>(createPresetDate('07:15'));
+  const [formAudienceSegment, setFormAudienceSegment] = useState('vietnamese-investor');
+  const [formStrategyKey, setFormStrategyKey] = useState('market_update');
+  const [formTargetSlotLabel, setFormTargetSlotLabel] = useState('Morning Pulse');
 
   const load = useCallback(async (background = false) => {
     if (background) {
@@ -111,9 +126,7 @@ export default function Scheduler() {
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load workflow operations",
+        err instanceof Error ? err.message : 'Failed to load workflow operations',
       );
     } finally {
       setLoading(false);
@@ -138,7 +151,7 @@ export default function Scheduler() {
     const nextRunEstimate = schedulerStatus?.nextRunEstimate;
 
     if (!schedulerStatus?.isRunning || !nextRunEstimate) {
-      setCountdown("");
+      setCountdown('');
       return;
     }
 
@@ -148,20 +161,20 @@ export default function Scheduler() {
       const diff = new Date(nextRunAt).getTime() - Date.now();
 
       if (diff <= 0) {
-        setCountdown("0s");
+        setCountdown('0s');
         return;
       }
 
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      const parts = [];
+      const parts: string[] = [];
 
       if (hours > 0) parts.push(`${hours}h`);
       if (minutes > 0) parts.push(`${minutes}m`);
       parts.push(`${seconds}s`);
 
-      setCountdown(parts.join(" "));
+      setCountdown(parts.join(' '));
     }
 
     updateCountdown();
@@ -173,7 +186,7 @@ export default function Scheduler() {
     () =>
       posts
         .filter((post) =>
-          ["draft", "scheduled", "generating", "failed"].includes(post.status),
+          ['draft', 'scheduled', 'generating', 'failed'].includes(post.status),
         )
         .sort((a, b) => {
           const left = a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
@@ -196,44 +209,41 @@ export default function Scheduler() {
   const schedulerStatus: SchedulerStatus | null = workflow?.scheduler ?? null;
 
   async function handleStart() {
-    setActionLoading("start");
+    setActionLoading('start');
     try {
       await startScheduler();
       await load(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start scheduler",
-      );
+      setError(err instanceof Error ? err.message : 'Failed to start scheduler');
     } finally {
       setActionLoading(null);
     }
   }
 
   async function handleStop() {
-    setActionLoading("stop");
+    setActionLoading('stop');
     try {
       await stopScheduler();
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to stop scheduler");
+      setError(err instanceof Error ? err.message : 'Failed to stop scheduler');
     } finally {
       setActionLoading(null);
     }
   }
 
-  async function handleSchedule(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSchedule() {
     if (!formPersonaId) {
-      setError("Select a persona before scheduling");
+      setError('Select a persona before scheduling');
       return;
     }
 
-    setActionLoading("schedule");
+    setActionLoading('schedule');
     try {
       await createFacebookWorkflow({
         personaId: Number(formPersonaId),
         templateId: formTemplateId ? Number(formTemplateId) : undefined,
-        scheduledAt: new Date(formScheduledAt).toISOString(),
+        scheduledAt: formScheduledAt.toISOString(),
         audienceSegment: formAudienceSegment,
         strategyKey: formStrategyKey,
         targetSlotLabel: formTargetSlotLabel,
@@ -242,9 +252,7 @@ export default function Scheduler() {
       await load(true);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create Facebook workflow",
+        err instanceof Error ? err.message : 'Failed to create Facebook workflow',
       );
     } finally {
       setActionLoading(null);
@@ -257,7 +265,7 @@ export default function Scheduler() {
       await runPostWorkflow(id);
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to run workflow");
+      setError(err instanceof Error ? err.message : 'Failed to run workflow');
     } finally {
       setRowActionId(null);
     }
@@ -270,244 +278,294 @@ export default function Scheduler() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-ink-2">
-          Loading Facebook workflow...
-        </p>
-      </div>
+      <Flex justify="center" align="center" style={{ minHeight: 256 }}>
+        <Spin tip="Loading Facebook workflow..." />
+      </Flex>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-ink-1">Facebook Ops</h2>
-          <p className="text-sm text-ink-2">
-            AI workflow for research, drafting, compliance, scheduling,
-            publishing, and learning.
-          </p>
+  const queueColumns: ColumnsType<Post> = [
+    {
+      title: 'Post',
+      dataIndex: 'content',
+      key: 'content',
+      render: (_: unknown, post: Post) => (
+        <div className="max-w-sm whitespace-normal">
+          <Text strong className="!block !line-clamp-2">
+            {post.content ?? post.metadata?.draftContent ?? 'Awaiting draft'}
+          </Text>
+          <Text type="secondary" className="!text-xs !mt-1">
+            {post.metadata?.strategyKey ?? 'facebook-plan'} •{' '}
+            {post.metadata?.audienceSegment ?? 'vietnamese-investor'}
+          </Text>
         </div>
-        <button
-          type="button"
-          onClick={() => load(true)}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-paper-2 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 disabled:opacity-50"
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (_: unknown, post: Post) => (
+        <Flex vertical gap={4}>
+          <Tag color={statusTagColor[post.status]} className="!capitalize">
+            {post.status}
+          </Tag>
+          <Text type="secondary" className="!text-xs !capitalize">
+            {post.workflowStage.replace(/_/g, ' ')}
+          </Text>
+        </Flex>
+      ),
+    },
+    {
+      title: 'Scheduled',
+      dataIndex: 'scheduledAt',
+      key: 'scheduledAt',
+      render: (_: unknown, post: Post) => (
+        <div>
+          <Text>
+            {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString() : 'Not set'}
+          </Text>
+          <br />
+          <Text type="secondary" className="!text-xs">
+            Attempts: {post.workflowAttempts}
+          </Text>
+        </div>
+      ),
+    },
+    {
+      title: 'Feedback',
+      key: 'feedback',
+      render: (_: unknown, post: Post) => {
+        const feedback = post.metadata?.feedback;
+        return feedback ? (
+          <div className="text-xs">
+            <Text type="secondary">Likes: {feedback.likes}</Text>
+            <br />
+            <Text type="secondary">Comments: {feedback.comments}</Text>
+            <br />
+            <Text type="secondary">Shares: {feedback.shares}</Text>
+          </div>
+        ) : (
+          <Text type="secondary">No feedback yet</Text>
+        );
+      },
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: unknown, post: Post) => (
+        <Button
+          type="primary"
+          size="small"
+          icon={<PlayCircleOutlined />}
+          loading={rowActionId === post.id}
+          onClick={() => handleRunWorkflow(post.id)}
         >
-          <ArrowPathIcon
-            className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-          />
+          {rowActionId === post.id ? 'Running...' : 'Advance'}
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <Flex vertical gap={24}>
+      <Flex vertical gap={12} className="lg:!flex-row lg:!items-center lg:!justify-between">
+        <div>
+          <Title level={3} className="!mb-0">
+            Facebook Ops
+          </Title>
+          <Text type="secondary">
+            AI workflow for research, drafting, compliance, scheduling, publishing, and learning.
+          </Text>
+        </div>
+        <Button icon={<ReloadOutlined spin={refreshing} />} onClick={() => load(true)} disabled={refreshing}>
           Refresh
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
       {error && (
-        <div className="bg-red-50 rounded-xl border border-red-200 p-4 text-sm text-red-600">
-          {error}
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          closable
+          onClose={() => setError(null)}
+          showIcon
+        />
       )}
 
       {schedulerStatus && (
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-6">
-          <div className="bg-paper-2 rounded-xl border border-border p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
+          <Card>
+            <Flex justify="space-between" align="flex-start">
               <div>
-                <p className="text-sm text-ink-2">Workflow Scheduler</p>
-                <p className="text-2xl font-semibold text-ink-1 mt-1">
-                  {schedulerStatus.isRunning ? "Running" : "Stopped"}
-                </p>
+                <Text type="secondary">Workflow Scheduler</Text>
+                <Title level={4} className="!mt-1 !mb-0">
+                  {schedulerStatus.isRunning ? 'Running' : 'Stopped'}
+                </Title>
               </div>
               {schedulerStatus.isRunning ? (
-                <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-                  <CheckCircleIcon className="w-4 h-4" /> Active
-                </span>
+                <Tag icon={<CheckCircleOutlined />} color="success">
+                  Active
+                </Tag>
               ) : (
-                <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
-                  <XCircleIcon className="w-4 h-4" /> Idle
-                </span>
+                <Tag icon={<CloseCircleOutlined />} color="error">
+                  Idle
+                </Tag>
               )}
-            </div>
+            </Flex>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
               <div>
-                <p className="text-sm text-ink-2">Cron</p>
-                <p className="text-sm font-mono text-ink-1 mt-1 break-all">
+                <Text type="secondary">Cron</Text>
+                <Text code className="!block !mt-1 !break-all">
                   {schedulerStatus.cronExpression}
-                </p>
+                </Text>
               </div>
               <div>
-                <p className="text-sm text-ink-2">Next Run</p>
-                <p className="text-sm font-semibold text-ink-1 mt-1">
+                <Text type="secondary">Next Run</Text>
+                <Text strong className="!block !mt-1">
                   {schedulerStatus.nextRunEstimate
                     ? new Date(schedulerStatus.nextRunEstimate).toLocaleString()
-                    : "N/A"}
-                </p>
+                    : 'N/A'}
+                </Text>
                 {countdown && (
-                  <p className="text-xs font-mono text-blue-600 mt-1">
+                  <Text type="success" className="!text-xs !font-mono !mt-1 !block">
                     in {countdown}
-                  </p>
+                  </Text>
                 )}
               </div>
               <div>
-                <p className="text-sm text-ink-2">Next Facebook Slot</p>
-                <p className="text-sm font-semibold text-ink-1 mt-1">
+                <Text type="secondary">Next Facebook Slot</Text>
+                <Text strong className="!block !mt-1">
                   {nextPost?.scheduledAt
                     ? new Date(nextPost.scheduledAt).toLocaleString()
-                    : "No queued post"}
-                </p>
+                    : 'No queued post'}
+                </Text>
               </div>
             </div>
 
-            <div className="flex gap-3 pt-6">
-              <button
-                type="button"
-                onClick={handleStart}
+            <Space className="!mt-6">
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                loading={actionLoading === 'start'}
                 disabled={schedulerStatus.isRunning || actionLoading !== null}
-                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                onClick={handleStart}
               >
-                <PlayIcon className="w-4 h-4" />
-                {actionLoading === "start" ? "Starting..." : "Start"}
-              </button>
-              <button
-                type="button"
-                onClick={handleStop}
+                {actionLoading === 'start' ? 'Starting...' : 'Start'}
+              </Button>
+              <Button
+                danger
+                icon={<PauseCircleOutlined />}
+                loading={actionLoading === 'stop'}
                 disabled={!schedulerStatus.isRunning || actionLoading !== null}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                onClick={handleStop}
               >
-                <StopIcon className="w-4 h-4" />
-                {actionLoading === "stop" ? "Stopping..." : "Stop"}
-              </button>
-            </div>
-          </div>
+                {actionLoading === 'stop' ? 'Stopping...' : 'Stop'}
+              </Button>
+            </Space>
+          </Card>
 
-          <div className="bg-paper-2 rounded-xl border border-border p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <SparklesIcon className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-ink-1">
-                Quick Schedule
-              </h3>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-4">
+          <Card
+            title={
+              <Flex align="center" gap={8}>
+                <ThunderboltOutlined style={{ color: '#1677ff' }} />
+                <Title level={4} className="!mb-0">
+                  Quick Schedule
+                </Title>
+              </Flex>
+            }
+          >
+            <Space wrap className="!mb-4">
               {QUICK_SLOT_PRESETS.map((slot) => (
-                <button
+                <Button
                   key={slot.value}
-                  type="button"
+                  type="default"
+                  size="small"
+                  shape="round"
                   onClick={() => applyPreset(slot.label, slot.value)}
-                  className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
                 >
                   {slot.label}
-                </button>
+                </Button>
               ))}
-            </div>
+            </Space>
 
-            <form onSubmit={handleSchedule} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-ink-1 mb-1">
-                  Persona
-                </label>
-                <select
-                  value={formPersonaId}
-                  onChange={(e) => setFormPersonaId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">Select persona...</option>
-                  {personas.map((persona) => (
-                    <option key={persona.id} value={persona.id}>
-                      {persona.displayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <Form layout="vertical" onFinish={handleSchedule}>
+              <Form.Item label="Persona">
+                <Select
+                  value={formPersonaId || undefined}
+                  onChange={setFormPersonaId}
+                  placeholder="Select persona..."
+                  options={personas.map((persona) => ({
+                    label: persona.displayName,
+                    value: String(persona.id),
+                  }))}
+                />
+              </Form.Item>
 
-              <div>
-                <label className="block text-sm font-medium text-ink-1 mb-1">
-                  Template
-                </label>
-                <select
-                  value={formTemplateId}
-                  onChange={(e) => {
+              <Form.Item label="Template">
+                <Select
+                  value={formTemplateId || undefined}
+                  onChange={(val) => {
                     const selected = templates.find(
-                      (template) => String(template.id) === e.target.value,
+                      (template) => String(template.id) === val,
                     );
-                    setFormTemplateId(e.target.value);
+                    setFormTemplateId(val);
                     if (selected) {
                       setFormStrategyKey(selected.type);
                     }
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">Select template...</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  placeholder="Select template..."
+                  options={templates.map((template) => ({
+                    label: template.name,
+                    value: String(template.id),
+                  }))}
+                />
+              </Form.Item>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-ink-1 mb-1">
-                    Audience Segment
-                  </label>
-                  <input
-                    type="text"
+                <Form.Item label="Audience Segment">
+                  <Input
                     value={formAudienceSegment}
                     onChange={(e) => setFormAudienceSegment(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-ink-1 mb-1">
-                    Strategy Key
-                  </label>
-                  <input
-                    type="text"
+                </Form.Item>
+                <Form.Item label="Strategy Key">
+                  <Input
                     value={formStrategyKey}
                     onChange={(e) => setFormStrategyKey(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
-                </div>
+                </Form.Item>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-ink-1 mb-1">
-                    Target Slot Label
-                  </label>
-                  <input
-                    type="text"
+                <Form.Item label="Target Slot Label">
+                  <Input
                     value={formTargetSlotLabel}
                     onChange={(e) => setFormTargetSlotLabel(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-ink-1 mb-1">
-                    Scheduled At
-                  </label>
-                  <input
-                    type="datetime-local"
+                </Form.Item>
+                <Form.Item label="Scheduled At">
+                  <DatePicker
+                    showTime
                     value={formScheduledAt}
-                    onChange={(e) => setFormScheduledAt(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    onChange={(val) => val && setFormScheduledAt(val)}
+                    style={{ width: '100%' }}
                   />
-                </div>
+                </Form.Item>
               </div>
 
-              <button
-                type="submit"
+              <Button
+                type="primary"
+                htmlType="submit"
+                icon={<RocketOutlined />}
+                loading={actionLoading === 'schedule'}
                 disabled={actionLoading !== null}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                <BoltIcon className="w-4 h-4" />
-                {actionLoading === "schedule"
-                  ? "Scheduling..."
-                  : "Create Facebook Workflow"}
-              </button>
-            </form>
-          </div>
+                {actionLoading === 'schedule' ? 'Scheduling...' : 'Create Facebook Workflow'}
+              </Button>
+            </Form>
+          </Card>
         </div>
       )}
 
@@ -516,141 +574,62 @@ export default function Scheduler() {
           <StatsCard
             label="Total Queue"
             value={workflow.queue.total}
-            icon={<ClockIcon className="w-7 h-7" />}
+            icon={<ClockCircleOutlined style={{ fontSize: 28 }} />}
             color="text-slate-600"
           />
           <StatsCard
             label="Scheduled"
             value={workflow.queue.scheduled}
-            icon={<ClockIcon className="w-7 h-7" />}
+            icon={<CalendarOutlined style={{ fontSize: 28 }} />}
             color="text-blue-600"
           />
           <StatsCard
             label="Generating"
             value={workflow.queue.generating}
-            icon={<SparklesIcon className="w-7 h-7" />}
+            icon={<ThunderboltOutlined style={{ fontSize: 28 }} />}
             color="text-yellow-600"
           />
           <StatsCard
             label="Failed"
             value={workflow.queue.failed}
-            icon={<XCircleIcon className="w-7 h-7" />}
+            icon={<CloseCircleOutlined style={{ fontSize: 28 }} />}
             color="text-red-600"
           />
           <StatsCard
             label="Overdue"
             value={workflow.queue.overdue}
-            icon={<BoltIcon className="w-7 h-7" />}
+            icon={<FireOutlined style={{ fontSize: 28 }} />}
             color="text-orange-600"
           />
           <StatsCard
             label="Posted Today"
             value={workflow.queue.postedToday}
-            icon={<CheckCircleIcon className="w-7 h-7" />}
+            icon={<CheckCircleOutlined style={{ fontSize: 28 }} />}
             color="text-green-600"
           />
         </div>
       )}
 
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <Flex justify="space-between" align="flex-start" className="!mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-ink-1">
+            <Title level={4} className="!mb-0">
               Facebook Queue
-            </h3>
-            <p className="text-sm text-ink-2">
-              Posts moving through research, drafting, compliance, and
-              publishing.
-            </p>
+            </Title>
+            <Text type="secondary">
+              Posts moving through research, drafting, compliance, and publishing.
+            </Text>
           </div>
-        </div>
+        </Flex>
 
-        <DataTable
-          columns={[
-            {
-              key: "content",
-              header: "Post",
-              render: (post: Post) => (
-                <div className="max-w-sm whitespace-normal">
-                  <p className="font-medium text-ink-1 line-clamp-2">
-                    {post.content ??
-                      post.metadata?.draftContent ??
-                      "Awaiting draft"}
-                  </p>
-                  <p className="text-xs text-ink-2 mt-1">
-                    {post.metadata?.strategyKey ?? "facebook-plan"} •{" "}
-                    {post.metadata?.audienceSegment ?? "vietnamese-investor"}
-                  </p>
-                </div>
-              ),
-            },
-            {
-              key: "status",
-              header: "Status",
-              render: (post: Post) => (
-                <div className="space-y-1">
-                  <StatusBadge status={post.status} />
-                  <p className="text-xs text-ink-2 capitalize">
-                    {post.workflowStage.replace(/_/g, " ")}
-                  </p>
-                </div>
-              ),
-            },
-            {
-              key: "scheduledAt",
-              header: "Scheduled",
-              render: (post: Post) => (
-                <div>
-                  <p>
-                    {post.scheduledAt
-                      ? new Date(post.scheduledAt).toLocaleString()
-                      : "Not set"}
-                  </p>
-                  <p className="text-xs text-ink-2">
-                    Attempts: {post.workflowAttempts}
-                  </p>
-                </div>
-              ),
-            },
-            {
-              key: "feedback",
-              header: "Feedback",
-              render: (post: Post) => {
-                const feedback = post.metadata?.feedback;
-                return feedback ? (
-                  <div className="text-xs text-gray-600 whitespace-normal">
-                    <p>Likes: {feedback.likes}</p>
-                    <p>Comments: {feedback.comments}</p>
-                    <p>Shares: {feedback.shares}</p>
-                  </div>
-                ) : (
-                  <span className="text-gray-400">No feedback yet</span>
-                );
-              },
-            },
-            {
-              key: "actions",
-              header: "Actions",
-              render: (post: Post) => (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleRunWorkflow(post.id)}
-                    disabled={rowActionId === post.id}
-                    className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
-                  >
-                    <PlayIcon className="w-3 h-3" />
-                    {rowActionId === post.id ? "Running..." : "Advance"}
-                  </button>
-                </div>
-              ),
-            },
-          ]}
-          data={queuePosts}
-          keyExtractor={(post) => String(post.id)}
-          emptyMessage="No Facebook posts in workflow queue"
+        <Table<Post>
+          columns={queueColumns}
+          dataSource={queuePosts}
+          rowKey={(post) => String(post.id)}
+          pagination={{ pageSize: 10, showSizeChanger: true }}
+          locale={{ emptyText: 'No Facebook posts in workflow queue' }}
         />
       </div>
-    </div>
+    </Flex>
   );
 }

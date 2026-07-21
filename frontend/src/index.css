@@ -1,8 +1,14 @@
 /* Hallmark · genre: playful · theme: happiness
  * states: N/A (global css)
  * contrast: pass
+ *
+ * Layer ordering: tailwind → antd → base
+ * Antd styles are injected into the `antd` layer via StyleProvider layer prop,
+ * so Tailwind utilities win over antd defaults without !important hacks.
  */
 @import "tailwindcss";
+
+@layer tailwind, antd, base;
 
 @theme {
   --color-paper-1: #FFF7EB;
@@ -20,28 +26,30 @@
   --color-brand-warning-subtle: #FEFCBF;
   --color-brand-info: #4299E1;
   --color-brand-info-subtle: #BEE3F8;
-  
+
   --font-display: 'Outfit', sans-serif;
   --font-body: 'Quicksand', sans-serif;
 }
 
-html, body {
-  overflow-x: clip;
-  background-color: var(--color-paper-1);
-  color: var(--color-ink-1);
-  font-family: var(--font-body);
-  margin: 0;
-  padding: 0;
-}
+@layer base {
+  html, body {
+    overflow-x: clip;
+    background-color: var(--color-paper-1);
+    color: var(--color-ink-1);
+    font-family: var(--font-body);
+    margin: 0;
+    padding: 0;
+  }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
-  font-style: normal;
-  overflow-wrap: anywhere;
-  min-width: 0;
-}
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-style: normal;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
 
-td, p, span, div {
-  overflow-wrap: anywhere;
-  min-width: 0;
+  td, p, span, div {
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
 }

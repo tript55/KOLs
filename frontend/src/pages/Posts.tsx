@@ -1,14 +1,27 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 import {
-  PlusIcon,
-  PlayIcon,
-  PencilIcon,
-  TrashIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
-import DataTable from "../components/DataTable";
-import StatusBadge from "../components/StatusBadge";
-import Modal from "../components/Modal";
+  PlusOutlined,
+  PlayCircleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons';
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Flex,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Spin,
+  Typography,
+} from 'antd';
+import dayjs from 'dayjs';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
 import {
   getPosts,
   getPersonas,
@@ -18,17 +31,20 @@ import {
   deletePost,
   processPost,
   generateContent,
-} from "../lib/api";
-import type { Post, PostStatus, Platform, Persona, Template } from "../types";
+} from '../lib/api';
+import type { Post, PostStatus, Platform, Persona, Template } from '../types';
+
+const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 const ALL_STATUSES: PostStatus[] = [
-  "draft",
-  "scheduled",
-  "generating",
-  "posted",
-  "failed",
+  'draft',
+  'scheduled',
+  'generating',
+  'posted',
+  'failed',
 ];
-const ALL_PLATFORMS: Platform[] = ["facebook", "twitter", "telegram"];
+const ALL_PLATFORMS: Platform[] = ['facebook', 'twitter', 'telegram'];
 
 export default function Posts() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -36,20 +52,18 @@ export default function Posts() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<PostStatus | "">("");
-  const [platformFilter, setPlatformFilter] = useState<Platform | "">(
-    "facebook",
-  );
+  const [statusFilter, setStatusFilter] = useState<PostStatus | ''>('');
+  const [platformFilter, setPlatformFilter] = useState<Platform | ''>('facebook');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [processing, setProcessing] = useState<number | null>(null);
 
-  const [formPlatform, setFormPlatform] = useState<Platform>("facebook");
-  const [formStatus, setFormStatus] = useState<PostStatus>("draft");
-  const [formPersonaId, setFormPersonaId] = useState("");
-  const [formTemplateId, setFormTemplateId] = useState("");
-  const [formContent, setFormContent] = useState("");
-  const [formScheduledAt, setFormScheduledAt] = useState("");
+  const [formPlatform, setFormPlatform] = useState<Platform>('facebook');
+  const [formStatus, setFormStatus] = useState<PostStatus>('draft');
+  const [formPersonaId, setFormPersonaId] = useState('');
+  const [formTemplateId, setFormTemplateId] = useState('');
+  const [formContent, setFormContent] = useState('');
+  const [formScheduledAt, setFormScheduledAt] = useState<dayjs.Dayjs | null>(null);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -64,7 +78,7 @@ export default function Posts() {
       setPersonas(personasData);
       setTemplates(templatesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load posts");
+      setError(err instanceof Error ? err.message : 'Failed to load posts');
     } finally {
       setLoading(false);
     }
@@ -80,7 +94,7 @@ export default function Posts() {
       await processPost(id);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to process post");
+      setError(err instanceof Error ? err.message : 'Failed to process post');
     } finally {
       setProcessing(null);
     }
@@ -91,29 +105,33 @@ export default function Posts() {
     setFormPlatform(post.platform);
     setFormStatus(post.status);
     setFormPersonaId(String(post.personaId));
-    setFormTemplateId(post.templateId ? String(post.templateId) : "");
-    setFormContent(post.content ?? "");
-    setFormScheduledAt(
-      post.scheduledAt
-        ? new Date(post.scheduledAt).toISOString().slice(0, 16)
-        : "",
-    );
+    setFormTemplateId(post.templateId ? String(post.templateId) : '');
+    setFormContent(post.content ?? '');
+    setFormScheduledAt(post.scheduledAt ? dayjs(post.scheduledAt) : null);
     setModalOpen(true);
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-    try {
-      await deletePost(id);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete post");
-    }
+    Modal.confirm({
+      title: 'Delete Post',
+      content: 'Are you sure you want to delete this post?',
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await deletePost(id);
+          await load();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to delete post');
+        }
+      },
+    });
   }
 
   async function handleGenerate() {
     if (!formTemplateId) {
-      setError("Please select a template first");
+      setError('Please select a template first');
       return;
     }
     setGenerating(true);
@@ -124,15 +142,14 @@ export default function Posts() {
       setFormContent(result.content);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to generate content",
+        err instanceof Error ? err.message : 'Failed to generate content',
       );
     } finally {
       setGenerating(false);
     }
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate() {
     setSaving(true);
     try {
       const postData = {
@@ -141,7 +158,7 @@ export default function Posts() {
         personaId: Number(formPersonaId),
         templateId: formTemplateId ? Number(formTemplateId) : undefined,
         content: formContent || undefined,
-        scheduledAt: formScheduledAt || undefined,
+        scheduledAt: formScheduledAt ? formScheduledAt.toISOString() : undefined,
       };
 
       if (editingPost) {
@@ -152,15 +169,15 @@ export default function Posts() {
 
       setModalOpen(false);
       setEditingPost(null);
-      setFormPlatform("facebook");
-      setFormStatus("draft");
-      setFormPersonaId("");
-      setFormTemplateId("");
-      setFormContent("");
-      setFormScheduledAt("");
+      setFormPlatform('facebook');
+      setFormStatus('draft');
+      setFormPersonaId('');
+      setFormTemplateId('');
+      setFormContent('');
+      setFormScheduledAt(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save post");
+      setError(err instanceof Error ? err.message : 'Failed to save post');
     } finally {
       setSaving(false);
     }
@@ -174,261 +191,245 @@ export default function Posts() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="animate-pulse text-ink-2">Loading posts...</p>
-      </div>
+      <Flex justify="center" align="center" style={{ minHeight: 256 }}>
+        <Spin tip="Loading posts..." />
+      </Flex>
     );
   }
 
+  const columns: ColumnsType<Post> = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 60,
+      render: (id: number) => String(id),
+    },
+    {
+      title: 'Content',
+      dataIndex: 'content',
+      key: 'content',
+      ellipsis: true,
+      render: (content: string | null) => (
+        <Text className="!block !max-w-xs !truncate">{content ?? '\u2014'}</Text>
+      ),
+    },
+    {
+      title: 'Platform',
+      dataIndex: 'platform',
+      key: 'platform',
+      render: (platform: string) => <span className="capitalize">{platform}</span>,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: PostStatus) => (
+        <Tag color={statusTagColor[status]} className="!capitalize">
+          {status}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Scheduled At',
+      dataIndex: 'scheduledAt',
+      key: 'scheduledAt',
+      render: (scheduledAt: string | null) =>
+        scheduledAt ? new Date(scheduledAt).toLocaleString() : '\u2014',
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: unknown, post: Post) => (
+        <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            icon={<PlayCircleOutlined />}
+            loading={processing === post.id}
+            onClick={() => handleProcess(post.id)}
+            className="!text-green-600"
+          >
+            {processing === post.id ? 'Processing...' : 'Process now'}
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(post)}
+            className="!text-blue-600"
+          >
+            Edit
+          </Button>
+          <Button
+            type="link"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(post.id)}
+          >
+            Delete
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-ink-1">Posts</h2>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="w-4 h-4" />
+    <Flex vertical gap={24}>
+      <Flex justify="space-between" align="center">
+        <Title level={3} className="!mb-0">
+          Posts
+        </Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
           Schedule New Post
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
       {error && (
-        <div className="bg-red-50 rounded-xl border border-red-200 p-4 text-sm text-red-600">
-          {error}
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          closable
+          onClose={() => setError(null)}
+          showIcon
+        />
       )}
 
       {/* Filters */}
-      <div className="flex gap-3">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as PostStatus | "")}
-          className="rounded-lg border border-gray-300 bg-paper-2 px-3 py-2 text-sm text-ink-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">All Statuses</option>
-          {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select
-          value={platformFilter}
-          onChange={(e) => setPlatformFilter(e.target.value as Platform | "")}
-          className="rounded-lg border border-gray-300 bg-paper-2 px-3 py-2 text-sm text-ink-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">All Platforms</option>
-          {ALL_PLATFORMS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Space>
+        <Select
+          value={statusFilter || undefined}
+          onChange={(val) => setStatusFilter(val ?? '')}
+          placeholder="All Statuses"
+          allowClear
+          style={{ width: 180 }}
+          options={[
+            { label: 'All Statuses', value: '' },
+            ...ALL_STATUSES.map((s) => ({ label: s, value: s })),
+          ]}
+        />
+        <Select
+          value={platformFilter || undefined}
+          onChange={(val) => setPlatformFilter(val ?? '')}
+          placeholder="All Platforms"
+          allowClear
+          style={{ width: 180 }}
+          options={[
+            { label: 'All Platforms', value: '' },
+            ...ALL_PLATFORMS.map((p) => ({ label: p, value: p })),
+          ]}
+        />
+      </Space>
 
-      <DataTable
-        columns={[
-          { key: "id", header: "ID", render: (post: Post) => String(post.id) },
-          {
-            key: "content",
-            header: "Content",
-            render: (post: Post) => (
-              <span className="block max-w-xs truncate text-ink-1">
-                {post.content ?? "\u2014"}
-              </span>
-            ),
-          },
-          {
-            key: "platform",
-            header: "Platform",
-            render: (post: Post) => (
-              <span className="capitalize">{post.platform}</span>
-            ),
-          },
-          {
-            key: "status",
-            header: "Status",
-            render: (post: Post) => <StatusBadge status={post.status} />,
-          },
-          {
-            key: "scheduledAt",
-            header: "Scheduled At",
-            render: (post: Post) =>
-              post.scheduledAt
-                ? new Date(post.scheduledAt).toLocaleString()
-                : "\u2014",
-          },
-          {
-            key: "actions",
-            header: "Actions",
-            render: (post: Post) => (
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleProcess(post.id)}
-                  disabled={processing === post.id}
-                  className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
-                >
-                  <PlayIcon className="w-3 h-3" />
-                  {processing === post.id ? "Processing..." : "Process now"}
-                </button>
-                <button
-                  onClick={() => handleEdit(post)}
-                  className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
-                >
-                  <PencilIcon className="w-3 h-3" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(post.id)}
-                  className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
-                >
-                  <TrashIcon className="w-3 h-3" />
-                  Delete
-                </button>
-              </div>
-            ),
-          },
-        ]}
-        data={filtered}
-        keyExtractor={(post) => String(post.id)}
-        emptyMessage="No posts found"
+      <Table<Post>
+        columns={columns}
+        dataSource={filtered}
+        rowKey={(post) => String(post.id)}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
+        locale={{ emptyText: 'No posts found' }}
       />
 
       <Modal
         open={modalOpen}
-        onClose={() => {
+        onCancel={() => {
           setModalOpen(false);
           setEditingPost(null);
         }}
-        title={editingPost ? "Edit Post" : "Schedule New Post"}
+        title={editingPost ? 'Edit Post' : 'Schedule New Post'}
+        footer={null}
+        destroyOnClose
       >
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">
-              Platform
-            </label>
-            <select
+        <Form layout="vertical" onFinish={handleCreate}>
+          <Form.Item label="Platform">
+            <Select
               value={formPlatform}
-              onChange={(e) => setFormPlatform(e.target.value as Platform)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              {ALL_PLATFORMS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">
-              Status
-            </label>
-            <select
+              onChange={setFormPlatform}
+              options={ALL_PLATFORMS.map((p) => ({ label: p, value: p }))}
+            />
+          </Form.Item>
+          <Form.Item label="Status">
+            <Select
               value={formStatus}
-              onChange={(e) => setFormStatus(e.target.value as PostStatus)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">
-              Persona
-            </label>
-            <select
-              value={formPersonaId}
-              onChange={(e) => setFormPersonaId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Select persona...</option>
-              {personas.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.displayName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">
-              Template (optional)
-            </label>
-            <select
-              value={formTemplateId}
-              onChange={(e) => setFormTemplateId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">None</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-ink-1">
-                Content (optional)
-              </label>
-              <button
-                type="button"
+              onChange={setFormStatus}
+              options={ALL_STATUSES.map((s) => ({ label: s, value: s }))}
+            />
+          </Form.Item>
+          <Form.Item label="Persona">
+            <Select
+              value={formPersonaId || undefined}
+              onChange={setFormPersonaId}
+              placeholder="Select persona..."
+              options={personas.map((p) => ({
+                label: p.displayName,
+                value: String(p.id),
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="Template (optional)">
+            <Select
+              value={formTemplateId || undefined}
+              onChange={setFormTemplateId}
+              placeholder="None"
+              allowClear
+              options={templates.map((t) => ({
+                label: t.name,
+                value: String(t.id),
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="Content (optional)">
+            <Flex justify="space-between" align="center" className="!mb-1">
+              <Text type="secondary" className="!text-xs">
+                Leave empty or click AI Generate...
+              </Text>
+              <Button
+                type="dashed"
+                size="small"
+                icon={<ThunderboltOutlined />}
+                loading={generating}
+                disabled={!formTemplateId}
                 onClick={handleGenerate}
-                disabled={generating || !formTemplateId}
-                className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50 transition-colors"
               >
-                <SparklesIcon className="w-3 h-3" />
-                {generating ? "Generating..." : "AI Generate"}
-              </button>
-            </div>
-            <textarea
+                {generating ? 'Generating...' : 'AI Generate'}
+              </Button>
+            </Flex>
+            <TextArea
               value={formContent}
               onChange={(e) => setFormContent(e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="Leave empty or click AI Generate..."
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-1 mb-1">
-              Scheduled At (optional)
-            </label>
-            <input
-              type="datetime-local"
+          </Form.Item>
+          <Form.Item label="Scheduled At (optional)">
+            <DatePicker
+              showTime
               value={formScheduledAt}
-              onChange={(e) => setFormScheduledAt(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              onChange={setFormScheduledAt}
+              style={{ width: '100%' }}
+              placeholder="Select date and time"
             />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
+          </Form.Item>
+          <Flex justify="flex-end" gap={12}>
+            <Button
               onClick={() => {
                 setModalOpen(false);
                 setEditingPost(null);
               }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-ink-1 hover:bg-paper-1 transition-colors"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !formPersonaId}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={saving}
+              disabled={!formPersonaId}
             >
-              {saving
-                ? "Saving..."
-                : editingPost
-                  ? "Update Post"
-                  : "Create Post"}
-            </button>
-          </div>
-        </form>
+              {saving ? 'Saving...' : editingPost ? 'Update Post' : 'Create Post'}
+            </Button>
+          </Flex>
+        </Form>
       </Modal>
-    </div>
+    </Flex>
   );
 }

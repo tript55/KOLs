@@ -61,6 +61,50 @@ export function registerPostRoutes(app: FastifyInstance): void {
     reply.send({ success: true, data: post });
   });
 
+  app.post("/api/posts/from-template", async (req, reply) => {
+    const body = req.body as Record<string, unknown>;
+    const content = body.content as string;
+    const personaId = body.personaId as number;
+    const templateId = (body.templateId as number | undefined) ?? null;
+
+    if (!content || !personaId) {
+      return reply.status(400).send({ success: false, error: "content and personaId are required" });
+    }
+
+    const post = await createScheduledPost({
+      templateId,
+      personaId,
+      platform: "facebook",
+      status: "draft",
+      content,
+      scheduledAt: null,
+      workflowStage: "publishing",
+      workflowAttempts: 0,
+      externalPostId: null,
+      lastError: null,
+      metadata: null,
+    });
+
+    const { publishContent } = await import("../../services/publisher.js");
+    try {
+      await updateScheduledPost(post.id, { status: "generating" });
+      const result = await publishContent("facebook", content);
+      await updateScheduledPost(post.id, {
+        status: "posted",
+        externalPostId: result.externalPostId,
+      });
+      const updated = await getScheduledPost(post.id);
+      reply.send({ success: true, data: updated });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Publish failed";
+      await updateScheduledPost(post.id, {
+        status: "failed",
+        lastError: errorMessage,
+      });
+      return reply.status(500).send({ success: false, error: errorMessage });
+    }
+  });
+
   app.put("/api/posts/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = req.body as Record<string, unknown>;

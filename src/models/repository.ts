@@ -106,6 +106,37 @@ export async function createTemplate(
   return (await getTemplate(rows[0]!.id))!;
 }
 
+export async function updateTemplate(
+  id: number,
+  data: Partial<Omit<ContentTemplate, "id" | "createdAt" | "updatedAt">>,
+): Promise<ContentTemplate | undefined> {
+  const db = getDatabase();
+  const updates: Record<string, any> = {};
+
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.type !== undefined) updates.type = data.type;
+  if (data.platform !== undefined) updates.platform = data.platform;
+  if (data.systemPrompt !== undefined) updates.system_prompt = data.systemPrompt;
+  if (data.userPromptTemplate !== undefined) updates.user_prompt_template = data.userPromptTemplate;
+  if (data.maxTokens !== undefined) updates.max_tokens = data.maxTokens;
+  if (data.temperature !== undefined) updates.temperature = data.temperature;
+  if (data.personaId !== undefined) updates.persona_id = data.personaId;
+  if (data.hashtags !== undefined) updates.hashtags = JSON.stringify(data.hashtags);
+
+  if (Object.keys(updates).length === 0) return getTemplate(id);
+
+  updates.updated_at = db`CURRENT_TIMESTAMP`;
+
+  await db`UPDATE content_templates SET ${db(updates)} WHERE id = ${id}`;
+  return getTemplate(id);
+}
+
+export async function deleteTemplate(id: number): Promise<boolean> {
+  const db = getDatabase();
+  const result = await db`DELETE FROM content_templates WHERE id = ${id}`;
+  return result.count > 0;
+}
+
 // === Scheduled Post Repository ===
 export async function getScheduledPost(id: number): Promise<ScheduledPost | undefined> {
   const db = getDatabase();

@@ -10,6 +10,7 @@ import type {
   GenerateResponse,
   CreatePersonaRequest,
   CreateTemplateRequest,
+  UpdateTemplateRequest,
   CreatePostRequest,
   CreateFacebookWorkflowRequest,
   WorkflowStatus,
@@ -119,6 +120,33 @@ export async function createTemplate(
   return fetchJson("/templates", {
     method: "POST",
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateTemplate(
+  id: number,
+  data: UpdateTemplateRequest,
+): Promise<Template> {
+  return fetchJson(`/templates/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteTemplate(id: number): Promise<void> {
+  return fetchJson(`/templates/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function postToFacebook(
+  content: string,
+  personaId: number,
+  templateId?: number,
+): Promise<Post> {
+  return fetchJson("/posts/from-template", {
+    method: "POST",
+    body: JSON.stringify({ content, personaId, templateId }),
   });
 }
 

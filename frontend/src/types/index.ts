@@ -203,6 +203,18 @@ export interface CreateTemplateRequest {
   hashtags: string[];
 }
 
+export interface UpdateTemplateRequest {
+  name?: string;
+  type?: TemplateType;
+  platform?: Platform;
+  personaId?: number;
+  systemPrompt?: string;
+  userPromptTemplate?: string;
+  maxTokens?: number;
+  temperature?: number;
+  hashtags?: string[];
+}
+
 export interface CreatePostRequest {
   content?: string;
   platform: Platform;

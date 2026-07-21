@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PlusOutlined, ThunderboltOutlined, BulbOutlined } from '@ant-design/icons';
+import { PlusOutlined, ThunderboltOutlined, BulbOutlined, EditOutlined, DeleteOutlined, SendOutlined } from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -8,14 +8,15 @@ import {
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Select,
   Spin,
   Table,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { getTemplates, getPersonas, createTemplate, generateContent, suggestConcept } from '../lib/api';
-import type { Template, TemplateType, Platform, Persona, CreateTemplateRequest, GenerateResponse } from '../types';
+import { getTemplates, getPersonas, createTemplate, updateTemplate, deleteTemplate, generateContent, suggestConcept, postToFacebook } from '../lib/api';
+import type { Template, TemplateType, Platform, Persona, CreateTemplateRequest, UpdateTemplateRequest, GenerateResponse } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
@@ -37,7 +38,6 @@ export default function Templates() {
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
-  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [conceptInput, setConceptInput] = useState('');
@@ -52,6 +52,24 @@ export default function Templates() {
   const [formMaxTokens, setFormMaxTokens] = useState(50000);
   const [formTemperature, setFormTemperature] = useState(0.8);
   const [formHashtags, setFormHashtags] = useState('');
+
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const [editName, setEditName] = useState('');
+  const [editType, setEditType] = useState<TemplateType>('market_update');
+  const [editPlatform, setEditPlatform] = useState<Platform>('facebook');
+  const [editPersonaId, setEditPersonaId] = useState('');
+  const [editSystemPrompt, setEditSystemPrompt] = useState('');
+  const [editUserPromptTemplate, setEditUserPromptTemplate] = useState('');
+  const [editMaxTokens, setEditMaxTokens] = useState(50000);
+  const [editTemperature, setEditTemperature] = useState(0.8);
+  const [editHashtags, setEditHashtags] = useState('');
+
+  const [editableContent, setEditableContent] = useState<string | null>(null);
+  const [postingToFacebook, setPostingToFacebook] = useState(false);
+  const [postResult, setPostResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -115,6 +133,86 @@ export default function Templates() {
     }
   }
 
+  function handleEdit(template: Template) {
+    setEditingTemplateId(template.id);
+    setEditName(template.name);
+    setEditType(template.type);
+    setEditPlatform(template.platform);
+    setEditPersonaId(String(template.personaId));
+    setEditSystemPrompt(template.systemPrompt);
+    setEditUserPromptTemplate(template.userPromptTemplate);
+    setEditMaxTokens(template.maxTokens);
+    setEditTemperature(template.temperature);
+    setEditHashtags(template.hashtags.join(', '));
+    setEditModalOpen(true);
+  }
+
+  async function handleUpdate() {
+    if (editingTemplateId === null) return;
+    setEditSaving(true);
+    try {
+      const hashtags = editHashtags
+        .split(',')
+        .map((h) => h.trim())
+        .filter((h) => h.length > 0);
+
+      const data: UpdateTemplateRequest = {
+        name: editName,
+        type: editType,
+        platform: editPlatform,
+        personaId: Number(editPersonaId),
+        systemPrompt: editSystemPrompt,
+        userPromptTemplate: editUserPromptTemplate,
+        maxTokens: editMaxTokens,
+        temperature: editTemperature,
+        hashtags,
+      };
+
+      await updateTemplate(editingTemplateId, data);
+      setEditModalOpen(false);
+      setEditingTemplateId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update template');
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    try {
+      await deleteTemplate(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete template');
+    }
+  }
+
+  async function handlePostToFacebook() {
+    if (!editableContent) return;
+    const templateId = generating !== null ? generating : selectedTemplateId;
+    const template = templates.find(t => t.id === templateId);
+
+    if (!template) {
+      setError('No template found for the generated content');
+      return;
+    }
+
+    setPostingToFacebook(true);
+    setPostResult(null);
+    try {
+      await postToFacebook(editableContent, template.personaId, template.id);
+      setPostResult({ success: true, message: 'Posted to Facebook successfully!' });
+    } catch (err) {
+      setPostResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to post to Facebook',
+      });
+    } finally {
+      setPostingToFacebook(false);
+    }
+  }
+
   async function handleGenerate(templateId: number) {
     const template = templates.find(t => t.id === templateId);
     
@@ -130,10 +228,10 @@ export default function Templates() {
 
   async function generateWithTemplate(templateId: number, context: Record<string, string>) {
     setGenerating(templateId);
-    setGeneratedContent(null);
     try {
       const result: GenerateResponse = await generateContent({ templateId, context });
-      setGeneratedContent(result.content);
+      setEditableContent(result.content);
+      setPostResult(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate content');
     } finally {
@@ -227,16 +325,46 @@ export default function Templates() {
     {
       title: 'Actions',
       key: 'actions',
+      width: 300,
       render: (_: unknown, template: Template) => (
-        <Button
-          type="dashed"
-          size="small"
-          icon={<ThunderboltOutlined />}
-          loading={generating === template.id}
-          onClick={() => handleGenerate(template.id)}
-        >
-          {generating === template.id ? 'Generating...' : 'Generate'}
-        </Button>
+        <Flex gap={8}>
+          <Button
+            type="dashed"
+            size="small"
+            icon={<ThunderboltOutlined />}
+            loading={generating === template.id}
+            onClick={() => handleGenerate(template.id)}
+          >
+            {generating === template.id ? 'Generating...' : 'Generate'}
+          </Button>
+          {role === 'admin' && (
+            <>
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(template)}
+              >
+                Edit
+              </Button>
+              <Popconfirm
+                title="Delete this template?"
+                description="This action cannot be undone."
+                onConfirm={() => handleDelete(template.id)}
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                >
+                  Delete
+                </Button>
+              </Popconfirm>
+            </>
+          )}
+        </Flex>
       ),
     },
   ];
@@ -272,12 +400,39 @@ export default function Templates() {
         locale={{ emptyText: 'No templates found' }}
       />
 
-      {generatedContent && (
-        <Alert
-          type="success"
-          message={generatedContent}
-          style={{ whiteSpace: 'pre-wrap' }}
-        />
+      {editableContent && (
+        <Flex vertical gap={12}>
+          <Title level={5}>Generated Content</Title>
+          <TextArea
+            value={editableContent}
+            onChange={(e) => setEditableContent(e.target.value)}
+            rows={8}
+            style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}
+          />
+          <Flex gap={12} align="center">
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              loading={postingToFacebook}
+              onClick={handlePostToFacebook}
+              disabled={!editableContent.trim()}
+            >
+              {postingToFacebook ? 'Posting...' : 'Post to Facebook'}
+            </Button>
+            <Button onClick={() => { setEditableContent(null); setPostResult(null); }}>
+              Discard
+            </Button>
+          </Flex>
+          {postResult && (
+            <Alert
+              type={postResult.success ? 'success' : 'error'}
+              message={postResult.message}
+              closable
+              onClose={() => setPostResult(null)}
+              showIcon
+            />
+          )}
+        </Flex>
       )}
 
       {/* Create Template Modal */}
@@ -370,6 +525,91 @@ export default function Templates() {
               disabled={!formPersonaId || !formName || !formSystemPrompt || !formUserPromptTemplate}
             >
               {saving ? 'Creating...' : 'Create Template'}
+            </Button>
+          </Flex>
+        </Form>
+      </Modal>
+
+      {/* Edit Template Modal */}
+      <Modal
+        open={editModalOpen}
+        onCancel={() => { setEditModalOpen(false); setEditingTemplateId(null); }}
+        title="Edit Template"
+        footer={null}
+        destroyOnClose
+      >
+        <Form layout="vertical" onFinish={handleUpdate}>
+          <Form.Item label="Name" required>
+            <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+          </Form.Item>
+          <Form.Item label="Type">
+            <Select
+              value={editType}
+              onChange={setEditType}
+              options={ALL_TYPES.map((t) => ({ label: formatLabel(t), value: t }))}
+            />
+          </Form.Item>
+          <Form.Item label="Platform">
+            <Select
+              value={editPlatform}
+              onChange={setEditPlatform}
+              options={ALL_PLATFORMS.map((p) => ({ label: p, value: p }))}
+            />
+          </Form.Item>
+          <Form.Item label="Persona">
+            <Select
+              value={editPersonaId || undefined}
+              onChange={setEditPersonaId}
+              placeholder="Select persona..."
+              options={personas.map((p) => ({ label: p.displayName, value: String(p.id) }))}
+            />
+          </Form.Item>
+          <Form.Item label="System Prompt" required>
+            <TextArea value={editSystemPrompt} onChange={(e) => setEditSystemPrompt(e.target.value)} rows={6} />
+          </Form.Item>
+          <Form.Item label="User Prompt Template" required>
+            <TextArea
+              value={editUserPromptTemplate}
+              onChange={(e) => setEditUserPromptTemplate(e.target.value)}
+              rows={4}
+              placeholder="Use {{variable}} placeholders"
+            />
+          </Form.Item>
+          <Form.Item label="Max Tokens">
+            <InputNumber
+              value={editMaxTokens}
+              onChange={(val) => setEditMaxTokens(val ?? 50000)}
+              min={50}
+              max={50000}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          <Form.Item label="Temperature">
+            <InputNumber
+              value={editTemperature}
+              onChange={(val) => setEditTemperature(val ?? 0.8)}
+              step={0.1}
+              min={0}
+              max={2}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+          <Form.Item label="Hashtags">
+            <Input
+              value={editHashtags}
+              onChange={(e) => setEditHashtags(e.target.value)}
+              placeholder="Comma-separated, e.g. crypto, bitcoin, defi"
+            />
+          </Form.Item>
+          <Flex justify="flex-end" gap={12}>
+            <Button onClick={() => { setEditModalOpen(false); setEditingTemplateId(null); }}>Cancel</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={editSaving}
+              disabled={!editPersonaId || !editName || !editSystemPrompt || !editUserPromptTemplate}
+            >
+              {editSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </Flex>
         </Form>

@@ -4,11 +4,14 @@ import {
   listScheduledPosts,
   recordAnalytics,
   updateWorkflowState,
+  getRecentEducationalPosts,
+  updatePostContentFingerprint,
 } from "../models/repository.js";
 import { getDateContext, getMarketContext } from "./market-data.js";
 import { getNewsContext, getNewsSnapshot } from "./news-fetcher.js";
 import { generateContent, generateCustomContent } from "./content-generator.js";
 import { fetchFacebookFeedback, publishContent } from "./publisher.js";
+import { computeFingerprint, jaccardSimilarity } from "../utils/content-fingerprint.js";
 import type {
   ContentIdea,
   FacebookWorkflowMetadata,
@@ -21,6 +24,10 @@ import type {
 const DEFAULT_DISCLAIMER =
   "Nội dung mang tính giáo dục tài chính, không phải khuyến nghị đầu tư cá nhân. Thị trường biến động cao, hãy tự quản trị rủi ro và vốn.";
 const BANNED_PHRASES = ["bão lời", "chắc chắn thắng", "all-in", "không thể lỗ"];
+
+const SIMILARITY_THRESHOLD = 0.6;
+const MAX_DEDUP_ATTEMPTS = 2;
+const DEDUP_LOOKBACK_DAYS = 7;
 
 export async function runFacebookWorkflow(
   postId: number,
@@ -140,7 +147,7 @@ async function advanceIdeaGeneration(
     throw new Error("Missing research snapshot");
   }
 
-  const prompt = [
+  const promptLines = [
     "Bạn là content strategist cho Facebook page tài chính/crypto tại Việt Nam.",
     "Tạo 3 ý tưởng bài đăng ngắn gọn bằng JSON array.",
     "Mỗi item gồm 4 trường: angle, hook, audience, rationale.",
@@ -150,10 +157,36 @@ async function advanceIdeaGeneration(
     `Ghi chú học tập gần đây: ${research.recentLearningNotes.join(" | ") || "không có"}`,
     research.dateContext,
     research.marketContext,
-    // Inject live news context only if available
     ...(research.newsContext ? [research.newsContext] : []),
     ...(research.sentimentContext ? [research.sentimentContext] : []),
-  ].join("\n\n");
+  ];
+
+  if (post.templateId) {
+    const template = await getTemplate(post.templateId);
+    if (template?.type === "educational") {
+      const recentPosts = await getRecentEducationalPosts(
+        post.personaId,
+        5,
+        new Date(Date.now() - DEDUP_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+      );
+
+      const angles = recentPosts
+        .flatMap((rp) => {
+          const meta = rp.metadata as FacebookWorkflowMetadata | null;
+          return meta?.ideas?.map((idea) => idea.angle) ?? [];
+        })
+        .filter((a): a is string => typeof a === "string" && a.length > 0);
+
+      if (angles.length > 0) {
+        promptLines.push(
+          `\n\nIMPORTANT: Avoid these recently covered topics: ${angles.join(", ")}`,
+          "Generate fresh angles that are distinctly different from the above.",
+        );
+      }
+    }
+  }
+
+  const prompt = promptLines.join("\n\n");
 
   const result = await generateCustomContent(
     "Chỉ trả về JSON hợp lệ, không markdown, không giải thích thêm.",
@@ -182,7 +215,8 @@ async function advanceDrafting(post: ScheduledPost): Promise<ScheduledPost> {
   const metadata = ensureMetadata(post);
   const research = metadata.research;
   const ideas = metadata.ideas;
-  const selectedIdea = ideas?.[metadata.selectedIdeaIndex ?? 0];
+  const selectedIdeaIndex = metadata.selectedIdeaIndex ?? 0;
+  const selectedIdea = ideas?.[selectedIdeaIndex];
 
   if (!research || !selectedIdea) {
     throw new Error("Missing idea generation context");
@@ -199,12 +233,61 @@ async function advanceDrafting(post: ScheduledPost): Promise<ScheduledPost> {
     rationale: selectedIdea.rationale,
     market_data: research.marketContext,
     date: research.dateContext,
-    // Inject live news & sentiment context if research captured them
     ...(research.newsContext ? { news_context: research.newsContext } : {}),
     ...(research.sentimentContext
       ? { sentiment_context: research.sentimentContext }
       : {}),
   });
+
+  const template = await getTemplate(post.templateId);
+  if (template?.type === "educational") {
+    const newFingerprint = computeFingerprint(result.content);
+    const recentPosts = await getRecentEducationalPosts(
+      post.personaId,
+      10,
+      new Date(Date.now() - DEDUP_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+    );
+
+    for (const recentPost of recentPosts) {
+      const existingFp = recentPost.content_fingerprint ?? computeFingerprint(recentPost.content ?? "");
+      const sim = jaccardSimilarity(newFingerprint, existingFp);
+
+      if (sim > SIMILARITY_THRESHOLD) {
+        console.warn(
+          `[Dedup] Content too similar to post ${recentPost.id} (similarity: ${sim.toFixed(2)})`,
+        );
+
+        if (post.workflowAttempts < MAX_DEDUP_ATTEMPTS) {
+          const nextIdeaIndex = ideas && selectedIdeaIndex < ideas.length - 1
+            ? selectedIdeaIndex + 1
+            : 0;
+
+          const nextMetadata = withMetadata(post, {
+            selectedIdeaIndex: nextIdeaIndex,
+          });
+
+          return mustUpdate(post.id, {
+            metadata: nextMetadata,
+            workflowAttempts: post.workflowAttempts + 1,
+            lastError: `Content too similar (attempt ${post.workflowAttempts + 1}/${MAX_DEDUP_ATTEMPTS})`,
+          });
+        }
+
+        await mustUpdate(post.id, {
+          status: "failed",
+          lastError: "Content too similar after 2 attempts",
+          workflowAttempts: post.workflowAttempts + 1,
+        });
+        throw new Error("Content too similar after 2 attempts");
+      }
+    }
+
+    try {
+      await updatePostContentFingerprint(post.id, newFingerprint);
+    } catch (e) {
+      console.warn("[Dedup] Could not store content fingerprint:", e);
+    }
+  }
 
   const nextMetadata = withMetadata(post, {
     draftContent: result.content,

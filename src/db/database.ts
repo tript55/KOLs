@@ -102,6 +102,17 @@ export async function migrate(): Promise<void> {
     ON scheduled_posts(platform, status, workflow_stage, scheduled_at);
   `;
 
+  try {
+    await db`ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS content_fingerprint TEXT`;
+    await db`
+      CREATE INDEX IF NOT EXISTS idx_scheduled_posts_fingerprint
+      ON scheduled_posts(persona_id, content_fingerprint)
+      WHERE status IN ('posted', 'scheduled', 'generating')
+    `;
+  } catch (e) {
+    console.warn("Could not add content_fingerprint column:", e);
+  }
+
   // Grant admin role to specific user via db migration
   try {
     await db`

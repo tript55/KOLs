@@ -470,6 +470,47 @@ export async function getRecentPosts(limit?: number): Promise<RecentPostWithAnal
   });
 }
 
+export async function getRecentEducationalPosts(
+  personaId: number,
+  limit: number = 10,
+  sinceIso?: string,
+): Promise<Array<{ id: number; content: string | null; metadata: ScheduledPost["metadata"]; created_at: string; content_fingerprint: string | null }>> {
+  const db = getDatabase();
+  const sinceDate = sinceIso ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const rows = await db`
+    SELECT sp.id, sp.content, sp.metadata, sp.created_at, sp.content_fingerprint
+    FROM scheduled_posts sp
+    JOIN content_templates ct ON sp.template_id = ct.id
+    WHERE ct.type = 'educational'
+      AND sp.persona_id = ${personaId}
+      AND sp.created_at > ${sinceDate}
+      AND sp.status IN ('posted', 'scheduled', 'generating')
+    ORDER BY sp.created_at DESC
+    LIMIT ${limit}
+  `;
+
+  return rows.map((row: Record<string, unknown>) => ({
+    id: row.id as number,
+    content: row.content as string | null,
+    metadata: row.metadata
+      ? (typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata)
+      : null,
+    created_at: row.created_at instanceof Date
+      ? row.created_at.toISOString()
+      : String(row.created_at),
+    content_fingerprint: row.content_fingerprint as string | null,
+  }));
+}
+
+export async function updatePostContentFingerprint(
+  id: number,
+  fingerprint: string,
+): Promise<void> {
+  const db = getDatabase();
+  await db`UPDATE scheduled_posts SET content_fingerprint = ${fingerprint}, updated_at = CURRENT_TIMESTAMP WHERE id = ${id}`;
+}
+
 // === Deserializers (json fields from DB) ===
 function deserializePersona(row: Record<string, any>): KOLPersona {
   return {
